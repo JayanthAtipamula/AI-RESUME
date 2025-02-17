@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { FileText, UserCircle, LogOut, BrainCircuit, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
 import { auth } from '../lib/firebase';
+import { UserCredits } from './UserCredits';
 
 export default function Navbar() {
   const location = useLocation();
@@ -66,6 +67,13 @@ export default function Navbar() {
             </div>
           </Link>
 
+          {/* Mobile Credits Display */}
+          {user && !isLoginPage && (
+            <div className="sm:hidden">
+              <UserCredits />
+            </div>
+          )}
+
           {/* Mobile menu button */}
           {!isLoginPage && (
             <button
@@ -108,108 +116,112 @@ export default function Navbar() {
             {!isLoginPage && (
               user ? (
                 <>
-                  <Link 
-                    to="/dashboard" 
-                    className={`glass-button py-2 ${
-                      location.pathname === '/dashboard' ? 'bg-neon-blue/20' : ''
-                    }`}
+                  <UserCredits className="px-4 py-2 bg-white/10 rounded-lg" />
+                  <Link
+                    to="/dashboard"
+                    className="glass-button px-4 py-2 flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Dashboard
+                    <FileText className="w-5 h-5" />
+                    <span>Dashboard</span>
                   </Link>
-                  <Link 
-                    to="/profile" 
-                    className={`glass-button py-2 ${
-                      location.pathname === '/profile' ? 'bg-neon-blue/20' : ''
-                    }`}
+                  <Link
+                    to="/profile"
+                    className="glass-button px-4 py-2 flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <UserCircle className="w-5 h-5" />
+                    <span>Profile</span>
                   </Link>
-                  <button 
+                  <button
                     onClick={handleLogout}
-                    className="glass-button py-2"
-                    title="Sign Out"
+                    className="glass-button px-4 py-2 flex items-center gap-2"
                   >
                     <LogOut className="w-5 h-5" />
+                    <span>Logout</span>
                   </button>
                 </>
               ) : (
-                <Link 
-                  to="/login" 
-                  className="signin-button"
-                >
-                  Sign In
-                </Link>
+                !isLoginPage && (
+                  <Link
+                    to="/login"
+                    className="glass-button px-6 py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                )
               )
             )}
           </div>
-        </div>
 
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && !isLoginPage && (
-          <div className="sm:hidden">
-            <div className="pt-4 pb-3 border-t border-white/10">
-              {isHomePage && (
-                <div className="flex flex-col gap-4 mb-4">
-                  <button 
-                    onClick={() => scrollToSection('how-it-works')} 
-                    className="text-white hover:text-neon-blue transition-colors"
-                  >
-                    How It Works
-                  </button>
-                  <button 
-                    onClick={() => scrollToSection('testimonials')} 
-                    className="text-white hover:text-neon-blue transition-colors"
-                  >
-                    Testimonials
-                  </button>
-                  <button 
-                    onClick={() => scrollToSection('pricing')} 
-                    className="text-white hover:text-neon-blue transition-colors"
-                  >
-                    Pricing
-                  </button>
-                </div>
-              )}
-              
-              {user ? (
-                <div className="flex flex-col gap-3">
+          {/* Mobile Navigation */}
+          {isMobileMenuOpen && !isLoginPage && (
+            <div className="sm:hidden">
+              <div className="pt-4 pb-3 border-t border-white/10">
+                {isHomePage && (
+                  <div className="flex flex-col gap-4 mb-4">
+                    <button 
+                      onClick={() => scrollToSection('how-it-works')} 
+                      className="text-white hover:text-neon-blue transition-colors"
+                    >
+                      How It Works
+                    </button>
+                    <button 
+                      onClick={() => scrollToSection('testimonials')} 
+                      className="text-white hover:text-neon-blue transition-colors"
+                    >
+                      Testimonials
+                    </button>
+                    <button 
+                      onClick={() => scrollToSection('pricing')} 
+                      className="text-white hover:text-neon-blue transition-colors"
+                    >
+                      Pricing
+                    </button>
+                  </div>
+                )}
+                
+                {user ? (
+                  <div className="flex flex-col gap-3">
+                    <Link 
+                      to="/dashboard" 
+                      className={`glass-button py-2 text-center ${
+                        location.pathname === '/dashboard' ? 'bg-neon-blue/20' : ''
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link 
+                      to="/profile" 
+                      className={`glass-button py-2 text-center ${
+                        location.pathname === '/profile' ? 'bg-neon-blue/20' : ''
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="glass-button py-2 w-full"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
                   <Link 
-                    to="/dashboard" 
-                    className={`glass-button py-2 text-center ${
-                      location.pathname === '/dashboard' ? 'bg-neon-blue/20' : ''
-                    }`}
+                    to="/login" 
+                    className="signin-button w-full text-center"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Dashboard
+                    Sign In
                   </Link>
-                  <Link 
-                    to="/profile" 
-                    className={`glass-button py-2 text-center ${
-                      location.pathname === '/profile' ? 'bg-neon-blue/20' : ''
-                    }`}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Profile
-                  </Link>
-                  <button 
-                    onClick={handleLogout}
-                    className="glass-button py-2 w-full"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <Link 
-                  to="/login" 
-                  className="signin-button w-full text-center"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Sign In
-                </Link>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </nav>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
-import { FileText, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import GenerateButton from './GenerateButton';
 
 interface GenerateContentProps {
   type: 'resume' | 'cover-letter';
@@ -54,15 +55,12 @@ Tips for best results:
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <GenerateButton
+            type={type}
+            isGenerating={isGenerating}
             onClick={handleGenerate}
-            disabled={isGenerating}
-            className="glass-button flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
-            <FileText className="w-5 h-5" />
-            {isGenerating ? 'Generating...' : `Generate ${type === 'resume' ? 'Resume' : 'Cover Letter'}`}
-          </button>
+          />
           <div className="text-sm text-gray-400 flex items-center gap-2">
             <span className="hidden sm:inline">•</span>
             Optimized for ATS systems

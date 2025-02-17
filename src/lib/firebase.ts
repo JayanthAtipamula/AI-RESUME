@@ -20,7 +20,23 @@ export const googleProvider = new GoogleAuthProvider();
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
+    const user = result.user;
+    
+    // Initialize or get user data
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      // New user - initialize with 30 credits
+      await setDoc(userRef, {
+        credits: 30,
+        uid: user.uid,
+        email: user.email,
+        createdAt: serverTimestamp()
+      });
+    }
+    
+    return user;
   } catch (error) {
     console.error('Error signing in with Google:', error);
     throw error;
@@ -65,6 +81,25 @@ export async function addNewResume(
   data: any
 ) {
   try {
+    // Check and update credits
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      throw new Error('User not found');
+    }
+    
+    const userData = userSnap.data();
+    if (userData.credits < 10) {
+      throw new Error('Insufficient credits');
+    }
+    
+    // Deduct credits
+    await setDoc(userRef, {
+      ...userData,
+      credits: userData.credits - 10
+    });
+
     const collectionName = type === 'resume' ? 'resumes' : 'coverLetters';
     const resumesRef = collection(db, 'users', userId, collectionName);
     
@@ -78,6 +113,22 @@ export async function addNewResume(
     await cleanupOldResumes(userId, type);
   } catch (error) {
     console.error('Error adding new resume:', error);
+    throw error;
+  }
+}
+
+export async function getUserCredits(userId: string) {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      throw new Error('User not found');
+    }
+    
+    return userSnap.data().credits;
+  } catch (error) {
+    console.error('Error getting user credits:', error);
     throw error;
   }
 }

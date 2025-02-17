@@ -7,10 +7,10 @@ interface TabSelectorProps {
 
 export default function TabSelector({ activeTab, onTabChange }: TabSelectorProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+    <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-4 mb-6">
       <button
         onClick={() => onTabChange('resume')}
-        className={`glass-button flex items-center justify-center gap-2 w-full sm:w-auto ${
+        className={`glass-button flex items-center justify-center gap-2 ${
           activeTab === 'resume' ? 'bg-neon-blue/20' : ''
         }`}
       >
@@ -19,7 +19,7 @@ export default function TabSelector({ activeTab, onTabChange }: TabSelectorProps
       </button>
       <button
         onClick={() => onTabChange('cover-letter')}
-        className={`glass-button flex items-center justify-center gap-2 w-full sm:w-auto ${
+        className={`glass-button flex items-center justify-center gap-2 ${
           activeTab === 'cover-letter' ? 'bg-neon-blue/20' : ''
         }`}
       >
