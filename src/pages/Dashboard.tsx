@@ -164,21 +164,11 @@ export default function Dashboard() {
 
     // Check credits before proceeding
     if (!userData || userData.credits < 10) {
-      toast({
-        title: "Insufficient Credits",
-        description: userData?.credits === 0 
+      toast.error(
+        userData?.credits === 0 
           ? "You have no credits remaining. Please upgrade to continue generating content." 
-          : `You need ${10 - (userData?.credits || 0)} more credits. Please upgrade to continue.`,
-        action: (
-          <Link 
-            to="/pricing" 
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-neon-blue text-white shadow hover:bg-neon-blue/90 h-9 px-4 py-2"
-          >
-            Upgrade Now
-          </Link>
-        ),
-        variant: "destructive",
-      });
+          : `You need ${10 - (userData?.credits || 0)} more credits. Please upgrade to continue.`
+      );
       return;
     }
     
@@ -218,6 +208,14 @@ export default function Dashboard() {
 
       // Use the new addNewResume function that handles cleanup and updates frontend state
       await addNewResume(user.uid, activeTab, contentData, setUserData, updateCredits);
+      
+      // Fetch latest user data to ensure accurate credit display
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setUserData(userData);
+        updateCredits(userData.credits);
+      }
       
       // Fetch the latest resumes after adding new one
       const resumesRef = collection(db, 'users', user.uid, activeTab === 'resume' ? 'resumes' : 'coverLetters');
