@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore, collection, query, orderBy, getDocs, deleteDoc, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getFirestore, collection, query, orderBy, getDocs, deleteDoc, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,6 +14,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Set persistence to LOCAL (persists even after window/tab is closed)
+setPersistence(auth, browserLocalPersistence);
 
 export const googleProvider = new GoogleAuthProvider();
 
@@ -78,39 +81,35 @@ export async function cleanupOldResumes(userId: string, type: 'resume' | 'cover-
 export async function addNewResume(
   userId: string, 
   type: 'resume' | 'cover-letter',
-  data: any
+  data: any,
+  setUserData: (updater: any) => void,
+  updateCredits?: (credits: number) => void
 ) {
   try {
-    // Check and update credits
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
+    // Deduct credits first using transaction
+    const newCredits = await deductCredits(userId, 10);
     
-    if (!userSnap.exists()) {
-      throw new Error('User not found');
+    // Update frontend state immediately using both methods for compatibility
+    if (updateCredits) {
+      updateCredits(newCredits);
     }
+    setUserData((prevData: any) => ({
+      ...(prevData || {}),
+      credits: newCredits,
+      uid: userId
+    }));
     
-    const userData = userSnap.data();
-    if (userData.credits < 10) {
-      throw new Error('Insufficient credits');
-    }
-    
-    // Deduct credits
-    await setDoc(userRef, {
-      ...userData,
-      credits: userData.credits - 10
-    });
-
-    const collectionName = type === 'resume' ? 'resumes' : 'coverLetters';
-    const resumesRef = collection(db, 'users', userId, collectionName);
-    
-    // Add the new document
-    await addDoc(resumesRef, {
+    // Add the resume
+    const collectionRef = collection(db, 'users', userId, type === 'resume' ? 'resumes' : 'coverLetters');
+    const docRef = await addDoc(collectionRef, {
       ...data,
       createdAt: serverTimestamp()
     });
     
-    // Clean up old resumes
+    // Cleanup old resumes
     await cleanupOldResumes(userId, type);
+    
+    return { docRef, credits: newCredits };
   } catch (error) {
     console.error('Error adding new resume:', error);
     throw error;
@@ -156,6 +155,82 @@ export async function shareResume(userId: string, resumeId: string) {
     return resumeId;
   } catch (error) {
     console.error('Error sharing resume:', error);
+    throw error;
+  }
+}
+
+interface SubscriptionData {
+  plan: string;
+  billingType: 'monthly' | 'yearly';
+  startDate: Date;
+  endDate: Date;
+  amount: number;
+  orderId: string;
+  credits: number;
+}
+
+export async function updateUserSubscription(userId: string, subscriptionData: SubscriptionData) {
+  try {
+    const userRef = doc(db, 'users', userId);
+    
+    // Get current user data
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      throw new Error('User not found');
+    }
+
+    // Update user document with subscription data and credits
+    await setDoc(userRef, {
+      subscription: {
+        ...subscriptionData,
+        status: 'active',
+        updatedAt: serverTimestamp()
+      },
+      credits: subscriptionData.credits,
+      isPremium: true
+    }, { merge: true });
+
+    // Add to subscription history
+    const historyRef = collection(db, 'users', userId, 'subscriptionHistory');
+    await addDoc(historyRef, {
+      ...subscriptionData,
+      createdAt: serverTimestamp()
+    });
+
+  } catch (error) {
+    console.error('Error updating subscription:', error);
+    throw error;
+  }
+}
+
+export async function deductCredits(userId: string, amount: number = 10) {
+  const userRef = doc(db, 'users', userId);
+  
+  try {
+    let newCredits = 0;
+    await runTransaction(db, async (transaction) => {
+      const userDoc = await transaction.get(userRef);
+      
+      if (!userDoc.exists()) {
+        throw new Error('User not found');
+      }
+      
+      const userData = userDoc.data();
+      if (userData.credits < amount) {
+        throw new Error('Insufficient credits');
+      }
+      
+      newCredits = userData.credits - amount;
+      
+      // Update credits atomically
+      transaction.update(userRef, {
+        credits: newCredits
+      });
+    });
+    
+    return newCredits;
+  } catch (error) {
+    console.error('Error deducting credits:', error);
     throw error;
   }
 }

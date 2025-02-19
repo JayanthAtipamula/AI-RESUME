@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Diamond } from 'lucide-react';
 import GenerateButton from './GenerateButton';
 
 interface GenerateContentProps {
@@ -8,6 +8,7 @@ interface GenerateContentProps {
   setJobDescription: (value: string) => void;
   handleGenerate: () => void;
   isGenerating: boolean;
+  userData: any;
 }
 
 export default function GenerateContent({
@@ -15,7 +16,8 @@ export default function GenerateContent({
   jobDescription,
   setJobDescription,
   handleGenerate,
-  isGenerating
+  isGenerating,
+  userData
 }: GenerateContentProps) {
   return (
     <div className="glass p-3 sm:p-6 mb-6">
@@ -55,15 +57,25 @@ Tips for best results:
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mt-6">
           <GenerateButton
             type={type}
             isGenerating={isGenerating}
             onClick={handleGenerate}
           />
-          <div className="text-sm text-gray-400 flex items-center gap-2">
-            <span className="hidden sm:inline">•</span>
-            Optimized for ATS systems
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-400">Plan:</span>
+            <span className={`px-2 py-1 rounded-full ${
+              userData?.subscription?.plan === 'free'
+                ? 'bg-gray-500/20 text-gray-400'
+                : userData?.subscription?.plan === '1m-pro'
+                ? 'bg-blue-500/20 text-blue-500'
+                : 'bg-purple-500/20 text-purple-500'
+            }`}>
+              {userData?.subscription?.plan === 'free' ? 'Free' :
+               userData?.subscription?.plan === '1m-pro' ? 'Monthly Pro' :
+               userData?.subscription?.plan === '1y-pro' ? 'Yearly Pro' : 'Free'}
+            </span>
           </div>
         </div>
       </div>

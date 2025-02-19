@@ -14,11 +14,17 @@
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-switch": "^1.0.3",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/styled-components": "^5.1.34",
+    "axios": "^1.7.9",
     "canvas-confetti": "^1.9.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "firebase": "^10.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase": "^10.14.1",
     "framer-motion": "^11.0.8",
     "groq-sdk": "^0.3.0",
     "html2pdf.js": "^0.10.1",
@@ -26,10 +32,12 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.51.0",
-    "react-router-dom": "^6.22.2",
+    "react-hot-toast": "^2.5.2",
+    "react-router-dom": "^6.29.0",
     "styled-components": "^6.1.15",
     "tailwind-merge": "^2.2.1",
-    "zustand": "^4.5.2"
+    "ts-node": "^10.9.2",
+    "zustand": "^4.5.6"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.6.4",
@@ -39,13 +47,26 @@
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
     "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.18",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "vite": "^5.4.14"
-  }
+  },
+  "description": "��#\u0000 \u0000A\u0000I\u0000-\u0000R\u0000E\u0000S\u0000U\u0000M\u0000E\u0000\r\u0000 \u0000",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayanthAtipamula/AI-RESUME.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JayanthAtipamula/AI-RESUME/issues"
+  },
+  "homepage": "https://github.com/JayanthAtipamula/AI-RESUME#readme"
 }

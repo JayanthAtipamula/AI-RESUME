@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FileText, UserCircle, LogOut, BrainCircuit, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
 import { auth } from '../lib/firebase';
-import { UserCredits } from './UserCredits';
+import UserCredits from './UserCredits';
 
 export default function Navbar() {
   const location = useLocation();
@@ -67,9 +67,9 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Mobile Credits Display */}
+          {/* Desktop Credits Display */}
           {user && !isLoginPage && (
-            <div className="sm:hidden">
+            <div className="hidden sm:block">
               <UserCredits />
             </div>
           )}
@@ -78,12 +78,12 @@ export default function Navbar() {
           {!isLoginPage && (
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="sm:hidden glass-button p-2"
+              className="sm:hidden text-white hover:text-neon-blue transition-colors"
             >
               {isMobileMenuOpen ? (
-                <X className="w-6 h-6 text-white" />
+                <X className="w-6 h-6" />
               ) : (
-                <Menu className="w-6 h-6 text-white" />
+                <Menu className="w-6 h-6" />
               )}
             </button>
           )}
@@ -154,65 +154,74 @@ export default function Navbar() {
               )
             )}
           </div>
+        </div>
 
-          {/* Mobile Navigation */}
-          {isMobileMenuOpen && !isLoginPage && (
-            <div className="sm:hidden">
-              <div className="pt-4 pb-3 border-t border-white/10">
+        {/* Mobile Navigation - Overlay Style */}
+        {isMobileMenuOpen && !isLoginPage && (
+          <div className="sm:hidden fixed inset-0 top-[60px] bg-black/95 backdrop-blur-xl">
+            <div className="flex flex-col p-4 h-[calc(100vh-60px)] overflow-y-auto bg-gradient-to-b from-zinc-900/90 to-black/90 border-t border-white/10">
+              {/* Credits display at top */}
+              {user && (
+                <div className="mb-6 glass p-3 rounded-lg">
+                  <UserCredits />
+                </div>
+              )}
+              
+              {/* Navigation Links */}
+              <div className="flex flex-col gap-4">
                 {isHomePage && (
-                  <div className="flex flex-col gap-4 mb-4">
+                  <>
                     <button 
                       onClick={() => scrollToSection('how-it-works')} 
-                      className="text-white hover:text-neon-blue transition-colors"
+                      className="glass-button p-3 text-left w-full hover:bg-white/10 transition-colors"
                     >
                       How It Works
                     </button>
                     <button 
                       onClick={() => scrollToSection('testimonials')} 
-                      className="text-white hover:text-neon-blue transition-colors"
+                      className="glass-button p-3 text-left w-full hover:bg-white/10 transition-colors"
                     >
                       Testimonials
                     </button>
                     <button 
                       onClick={() => scrollToSection('pricing')} 
-                      className="text-white hover:text-neon-blue transition-colors"
+                      className="glass-button p-3 text-left w-full hover:bg-white/10 transition-colors"
                     >
                       Pricing
                     </button>
-                  </div>
+                  </>
                 )}
                 
                 {user ? (
-                  <div className="flex flex-col gap-3">
+                  <>
                     <Link 
                       to="/dashboard" 
-                      className={`glass-button py-2 text-center ${
-                        location.pathname === '/dashboard' ? 'bg-neon-blue/20' : ''
-                      }`}
+                      className="glass-button p-3 w-full flex items-center gap-2 hover:bg-white/10 transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
+                      <FileText className="w-5 h-5" />
                       Dashboard
                     </Link>
                     <Link 
                       to="/profile" 
-                      className={`glass-button py-2 text-center ${
-                        location.pathname === '/profile' ? 'bg-neon-blue/20' : ''
-                      }`}
+                      className="glass-button p-3 w-full flex items-center gap-2 hover:bg-white/10 transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
+                      <UserCircle className="w-5 h-5" />
                       Profile
                     </Link>
                     <button 
                       onClick={handleLogout}
-                      className="glass-button py-2 w-full"
+                      className="glass-button p-3 w-full flex items-center gap-2 hover:bg-white/10 transition-colors"
                     >
+                      <LogOut className="w-5 h-5" />
                       Sign Out
                     </button>
-                  </div>
+                  </>
                 ) : (
                   <Link 
                     to="/login" 
-                    className="signin-button w-full text-center"
+                    className="glass-button p-3 w-full text-center hover:bg-white/10 transition-colors"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Sign In
@@ -220,8 +229,8 @@ export default function Navbar() {
                 )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </nav>
   );
