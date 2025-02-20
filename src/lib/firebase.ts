@@ -30,12 +30,21 @@ export const signInWithGoogle = async () => {
     const userSnap = await getDoc(userRef);
     
     if (!userSnap.exists()) {
-      // New user - initialize with 30 credits
+      // New user - initialize with 30 credits and free subscription
+      const startDate = serverTimestamp();
       await setDoc(userRef, {
         credits: 30,
         uid: user.uid,
         email: user.email,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        subscription: {
+          credits: 30,
+          plan: 'free',
+          status: 'active',
+          startDate: startDate,
+          endDate: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // 100 years from now
+          lastCreditUpdate: startDate
+        }
       });
     }
     

@@ -418,66 +418,69 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen px-4 pt-28 pb-12">
-      <LoadingModal
-        isOpen={showLoadingModal}
-        type={activeTab}
-        steps={loadingSteps}
-        content={modalContent}
-        onClose={handleCloseModal}
-        downloadAsPDF={downloadAsPDF}
-        downloadAsText={downloadAsText}
-        jobDescription={jobDescription}
-        extractRole={extractRole}
-      />
-      
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
-        </div>
-
-        <GenerateContent
-          type={activeTab}
-          jobDescription={jobDescription}
-          setJobDescription={setJobDescription}
-          handleGenerate={handleGenerate}
-          isGenerating={isGenerating}
-          userData={userData}
-        />
-
-        <ResumeDisplay
-          content={generatedContent}
-          jobDescription={jobDescription}
-          type={activeTab}
-          downloadAsPDF={downloadAsPDF}
-          downloadAsText={downloadAsText}
-          extractRole={extractRole}
-          formatResumeDisplay={formatResumeDisplay}
-        />
-
-        {isLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
-          </div>
-        ) : previousContent.length > 0 ? (
-          <PreviousResumes
-            resumes={previousContent}
-            editingResume={editingContent}
-            expandedResume={expandedContent}
-            editedContent={editedContent}
-            isDeleting={isDeleting}
-            onToggleExpand={toggleExpand}
-            onEdit={handleEdit}
-            onSave={handleSaveEdit}
-            onCancel={handleCancelEdit}
-            onDelete={(id) => handleDelete(id, activeTab)}
-            onEditContentChange={setEditedContent}
+    <div className="min-h-screen bg-black text-white">
+      <div className="container mx-auto px-4 py-8 mt-20">
+        <div className="flex flex-col space-y-6">
+          <LoadingModal
+            isOpen={showLoadingModal}
+            type={activeTab}
+            steps={loadingSteps}
+            content={modalContent}
+            onClose={handleCloseModal}
             downloadAsPDF={downloadAsPDF}
             downloadAsText={downloadAsText}
-            formatResumeDisplay={formatResumeDisplay}
+            jobDescription={jobDescription}
+            extractRole={extractRole}
           />
-        ) : null}
+          
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
+              <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
+            </div>
+
+            <GenerateContent
+              type={activeTab}
+              jobDescription={jobDescription}
+              setJobDescription={setJobDescription}
+              handleGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              userData={userData}
+            />
+
+            <ResumeDisplay
+              content={generatedContent}
+              jobDescription={jobDescription}
+              type={activeTab}
+              downloadAsPDF={downloadAsPDF}
+              downloadAsText={downloadAsText}
+              extractRole={extractRole}
+              formatResumeDisplay={formatResumeDisplay}
+            />
+
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
+              </div>
+            ) : previousContent.length > 0 ? (
+              <PreviousResumes
+                resumes={previousContent}
+                editingResume={editingContent}
+                expandedResume={expandedContent}
+                editedContent={editedContent}
+                isDeleting={isDeleting}
+                onToggleExpand={toggleExpand}
+                onEdit={handleEdit}
+                onSave={handleSaveEdit}
+                onCancel={handleCancelEdit}
+                onDelete={(id) => handleDelete(id, activeTab)}
+                onEditContentChange={setEditedContent}
+                downloadAsPDF={downloadAsPDF}
+                downloadAsText={downloadAsText}
+                formatResumeDisplay={formatResumeDisplay}
+              />
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ const groq = new Groq({
 
 export const generateResume = async (profile: any, jobDescription: string) => {
   const prompt = `
-    Create a professional, ATS-friendly resume based on the profile and job description below.
+    Create  a professional, ATS-friendly resume based on the profile and job description below.
     
     Format the resume exactly like this example, maintaining the same structure and style:
 

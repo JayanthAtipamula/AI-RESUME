@@ -55,104 +55,114 @@ export default function Navbar() {
     >
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-neon-blue to-[#0099ff] flex items-center justify-center">
-                <BrainCircuit className="w-6 h-6 text-black" />
+          <div className="flex items-center gap-4">
+            <Link to="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-neon-blue to-[#0099ff] flex items-center justify-center">
+                  <BrainCircuit className="w-6 h-6 text-black" />
+                </div>
+                <div>
+                  <span className="text-white font-bold text-lg">AI Resume Builder</span>
+                  {isLoginPage && <div className="text-xs text-gray-400">Powered by Advanced AI</div>}
+                </div>
               </div>
-              <div>
-                <span className="text-white font-bold text-lg">AI Resume Builder</span>
-                {isLoginPage && <div className="text-xs text-gray-400">Powered by Advanced AI</div>}
-              </div>
-            </div>
-          </Link>
-
-          {/* Desktop Credits Display */}
-          {user && !isLoginPage && (
-            <div className="hidden sm:block">
-              <UserCredits />
-            </div>
-          )}
-
-          {/* Mobile menu button */}
-          {!isLoginPage && (
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="sm:hidden text-white hover:text-neon-blue transition-colors"
-            >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
-          )}
-
-          {/* Desktop Navigation */}
-          <div className="hidden sm:flex items-center gap-4">
-            {isHomePage && (
-              <div className="flex items-center gap-6 mr-4">
-                <button 
-                  onClick={() => scrollToSection('how-it-works')} 
-                  className="text-white hover:text-neon-blue transition-colors"
-                >
-                  How It Works
-                </button>
-                <button 
-                  onClick={() => scrollToSection('testimonials')} 
-                  className="text-white hover:text-neon-blue transition-colors"
-                >
-                  Testimonials
-                </button>
-                <button 
-                  onClick={() => scrollToSection('pricing')} 
-                  className="text-white hover:text-neon-blue transition-colors"
-                >
-                  Pricing
-                </button>
-              </div>
-            )}
+            </Link>
             
-            {!isLoginPage && (
-              user ? (
-                <>
-                  <UserCredits className="px-4 py-2 bg-white/10 rounded-lg" />
-                  <Link
-                    to="/dashboard"
-                    className="glass-button px-4 py-2 flex items-center gap-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <FileText className="w-5 h-5" />
-                    <span>Dashboard</span>
-                  </Link>
-                  <Link
-                    to="/profile"
-                    className="glass-button px-4 py-2 flex items-center gap-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <UserCircle className="w-5 h-5" />
-                    <span>Profile</span>
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="glass-button px-4 py-2 flex items-center gap-2"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span>Logout</span>
-                  </button>
-                </>
-              ) : (
-                !isLoginPage && (
-                  <Link
-                    to="/login"
-                    className="glass-button px-6 py-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Login
-                  </Link>
-                )
-              )
+            {/* Mobile Credits Display */}
+            {user && !isLoginPage && (
+              <div className="sm:hidden">
+                <UserCredits className="px-3 py-1.5 bg-white/10 rounded-lg" />
+              </div>
             )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Desktop Credits Display */}
+            {user && !isLoginPage && (
+              <div className="hidden sm:block">
+                <UserCredits className="px-4 py-2 bg-white/10 rounded-lg" />
+              </div>
+            )}
+
+            {/* Mobile menu button */}
+            {!isLoginPage && (
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="sm:hidden text-white hover:text-neon-blue transition-colors"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
+            )}
+
+            {/* Desktop Navigation */}
+            <div className="hidden sm:flex items-center gap-4">
+              {isHomePage && (
+                <div className="flex items-center gap-6 mr-4">
+                  <button 
+                    onClick={() => scrollToSection('how-it-works')} 
+                    className="text-white hover:text-neon-blue transition-colors"
+                  >
+                    How It Works
+                  </button>
+                  <button 
+                    onClick={() => scrollToSection('testimonials')} 
+                    className="text-white hover:text-neon-blue transition-colors"
+                  >
+                    Testimonials
+                  </button>
+                  <button 
+                    onClick={() => scrollToSection('pricing')} 
+                    className="text-white hover:text-neon-blue transition-colors"
+                  >
+                    Pricing
+                  </button>
+                </div>
+              )}
+              
+              {!isLoginPage && (
+                user ? (
+                  <>
+                    <Link
+                      to="/dashboard"
+                      className="glass-button px-4 py-2 flex items-center gap-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <FileText className="w-5 h-5" />
+                      <span>Dashboard</span>
+                    </Link>
+                    <Link
+                      to="/profile"
+                      className="glass-button px-4 py-2 flex items-center gap-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <UserCircle className="w-5 h-5" />
+                      <span>Profile</span>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="glass-button px-4 py-2 flex items-center gap-2"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span>Logout</span>
+                    </button>
+                  </>
+                ) : (
+                  !isLoginPage && (
+                    <Link
+                      to="/login"
+                      className="glass-button px-6 py-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Login
+                    </Link>
+                  )
+                )
+              )}
+            </div>
           </div>
         </div>
 
@@ -160,13 +170,6 @@ export default function Navbar() {
         {isMobileMenuOpen && !isLoginPage && (
           <div className="sm:hidden fixed inset-0 top-[60px] bg-black/95 backdrop-blur-xl">
             <div className="flex flex-col p-4 h-[calc(100vh-60px)] overflow-y-auto bg-gradient-to-b from-zinc-900/90 to-black/90 border-t border-white/10">
-              {/* Credits display at top */}
-              {user && (
-                <div className="mb-6 glass p-3 rounded-lg">
-                  <UserCredits />
-                </div>
-              )}
-              
               {/* Navigation Links */}
               <div className="flex flex-col gap-4">
                 {isHomePage && (
