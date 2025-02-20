@@ -11,17 +11,40 @@ import {
   BrainCircuit,
   Zap
 } from 'lucide-react';
+import { useAuthStore } from '../lib/store';
+import { toast } from 'react-hot-toast';
 
 export default function Login() {
   const [error, setError] = React.useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const setUserData = useAuthStore(state => state.setUserData);
 
   const from = location.state?.from?.pathname || '/dashboard';
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
+      const { user, userData, isNewUser } = await signInWithGoogle();
+      
+      // Update user data in store
+      if (userData) {
+        setUserData(userData);
+      }
+
+      // If new user, show welcome toast
+      if (isNewUser) {
+        toast.success(
+          <div className="flex flex-col">
+            <span className="font-semibold">Welcome to Resume Builder!</span>
+            <span className="text-sm">You've received 30 free credits</span>
+          </div>,
+          {
+            duration: 5000,
+            position: 'top-center'
+          }
+        );
+      }
+
       navigate(from);
     } catch (error: any) {
       console.error('Auth error:', error);

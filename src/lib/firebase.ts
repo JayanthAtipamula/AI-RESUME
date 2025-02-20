@@ -29,8 +29,11 @@ export const signInWithGoogle = async () => {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
     
+    let isNewUser = false;
+    
     if (!userSnap.exists()) {
       // New user - initialize with 30 credits and free subscription
+      isNewUser = true;
       const startDate = serverTimestamp();
       await setDoc(userRef, {
         credits: 30,
@@ -48,7 +51,11 @@ export const signInWithGoogle = async () => {
       });
     }
     
-    return user;
+    // Fetch latest user data after signup/login
+    const updatedUserSnap = await getDoc(userRef);
+    const userData = updatedUserSnap.data();
+    
+    return { user, userData, isNewUser };
   } catch (error) {
     console.error('Error signing in with Google:', error);
     throw error;

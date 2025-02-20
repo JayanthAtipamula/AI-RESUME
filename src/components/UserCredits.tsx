@@ -1,9 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuthStore } from '../lib/store';
 import { Diamond } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 function UserCredits({ className = "" }: { className?: string }) {
-  const { user, userData } = useAuthStore();
+  const { user, userData, setUserData } = useAuthStore();
+
+  useEffect(() => {
+    const fetchLatestCredits = async () => {
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setUserData(userDoc.data());
+        }
+      } catch (error) {
+        console.error('Error fetching latest credits:', error);
+      }
+    };
+
+    // Fetch credits when component mounts
+    fetchLatestCredits();
+  }, [user, setUserData]);
 
   if (!user) return null;
 
