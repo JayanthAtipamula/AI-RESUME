@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, collection, query, orderBy, getDocs, deleteDoc, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, getDocs, deleteDoc, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, where, increment, arrayUnion } from 'firebase/firestore';
+import { nanoid } from 'nanoid';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,7 +21,7 @@ setPersistence(auth, browserLocalPersistence);
 
 export const googleProvider = new GoogleAuthProvider();
 
-export const signInWithGoogle = async () => {
+export const signInWithGoogle = async (referralCode?: string) => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
@@ -30,25 +31,72 @@ export const signInWithGoogle = async () => {
     const userSnap = await getDoc(userRef);
     
     let isNewUser = false;
+    let referrerData = null;
+    const now = serverTimestamp();
     
     if (!userSnap.exists()) {
-      // New user - initialize with 30 credits and free subscription
       isNewUser = true;
-      const startDate = serverTimestamp();
-      await setDoc(userRef, {
+      const newReferralCode = nanoid(8);
+
+      // Check for valid referral code
+      if (referralCode) {
+        const referrerQuery = query(
+          collection(db, 'users'), 
+          where('referralCode', '==', referralCode)
+        );
+        
+        const referrerSnap = await getDocs(referrerQuery);
+        
+        if (!referrerSnap.empty) {
+          const referrerDoc = referrerSnap.docs[0];
+          referrerData = referrerDoc.data();
+          
+          // Update referrer's credits and stats
+          await updateDoc(referrerDoc.ref, {
+            credits: increment(20),
+            'subscription.credits': increment(20),
+            referralCount: increment(1),
+            referralHistory: arrayUnion({
+              userId: user.uid,
+              email: user.email,
+              timestamp: new Date().toISOString(),
+              creditsAwarded: 20
+            })
+          });
+        }
+      }
+
+      // Create new user document with referral data
+      const newUserData = {
         credits: 30,
         uid: user.uid,
         email: user.email,
-        createdAt: serverTimestamp(),
+        createdAt: now,
+        referralCode: newReferralCode,
+        referralCount: 0,
+        referralHistory: [],
         subscription: {
           credits: 30,
           plan: 'free',
           status: 'active',
-          startDate: startDate,
-          endDate: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // 100 years from now
-          lastCreditUpdate: startDate
+          startDate: now,
+          endDate: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
+          lastCreditUpdate: now
         }
-      });
+      };
+
+      // Add referral data if user was referred
+      if (referralCode && referrerData) {
+        newUserData.referredBy = {
+          uid: referrerData.uid,
+          email: referrerData.email,
+          referralCode: referralCode,
+          timestamp: now
+        };
+      }
+
+      // Save the new user data
+      await setDoc(userRef, newUserData);
     }
     
     // Fetch latest user data after signup/login

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
   Mail, 
@@ -22,9 +22,19 @@ import {
 } from 'lucide-react';
 import { Pricing } from '../components/ui/pricing';
 import { TestimonialsSection } from '../components/ui/testimonials-with-marquee';
+import { storeReferralCode } from '../lib/utils';
 
 function Home() {
   const [openFaq, setOpenFaq] = React.useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Check for referral code when home page loads
+  useEffect(() => {
+    const referralCode = searchParams.get('ref');
+    if (referralCode) {
+      storeReferralCode(referralCode);
+    }
+  }, [searchParams]);
 
   const steps = [
     {

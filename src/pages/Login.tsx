@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { signInWithGoogle } from '../lib/firebase';
 import { 
   Sparkles, 
@@ -13,39 +13,53 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
 import { toast } from 'react-hot-toast';
+import { getPendingReferralCode, clearPendingReferralCode } from '../lib/utils';
 
 export default function Login() {
   const [error, setError] = React.useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const setUserData = useAuthStore(state => state.setUserData);
-
-  const from = location.state?.from?.pathname || '/dashboard';
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
 
   const handleGoogleSignIn = async () => {
     try {
-      const { user, userData, isNewUser } = await signInWithGoogle();
+      // Get stored referral code
+      const pendingReferralCode = getPendingReferralCode();
       
-      // Update user data in store
+      const { user, userData, isNewUser } = await signInWithGoogle(pendingReferralCode);
+      
+      // Clear the stored referral code after successful sign-in
+      clearPendingReferralCode();
+      
       if (userData) {
         setUserData(userData);
       }
 
-      // If new user, show welcome toast
+      // Show appropriate toast messages
       if (isNewUser) {
-        toast.success(
-          <div className="flex flex-col">
-            <span className="font-semibold">Welcome to Resume Builder!</span>
-            <span className="text-sm">You've received 30 free credits</span>
-          </div>,
-          {
-            duration: 5000,
-            position: 'top-center'
-          }
-        );
+        if (pendingReferralCode) {
+          toast.success(
+            <div className="flex flex-col">
+              <span className="font-semibold">Welcome to Resume Builder!</span>
+              <span className="text-sm">You've received 30 free credits</span>
+              <span className="text-sm">Referred by: {userData?.referredBy?.email}</span>
+            </div>,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success(
+            <div className="flex flex-col">
+              <span className="font-semibold">Welcome to Resume Builder!</span>
+              <span className="text-sm">You've received 30 free credits</span>
+            </div>,
+            { duration: 5000 }
+          );
+        }
       }
 
-      navigate(from);
+      navigate(location.state?.from?.pathname || '/dashboard');
     } catch (error: any) {
       console.error('Auth error:', error);
       setError('Failed to sign in with Google. Please try again.');

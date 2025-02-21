@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../lib/store';
 import { Save, Plus, Trash2, Wand2, ArrowLeft } from 'lucide-react';
+import ReferralSystem from '../components/ReferralSystem';
 
 interface WorkExperience {
   company: string;
@@ -625,6 +626,11 @@ function Profile() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Add the referral system */}
+        <div className="mt-8">
+          <ReferralSystem />
         </div>
       </div>
     </div>

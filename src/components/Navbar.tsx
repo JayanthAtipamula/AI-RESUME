@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, UserCircle, LogOut, BrainCircuit, Menu, X } from 'lucide-react';
+import { FileText, UserCircle, LogOut, BrainCircuit, Menu, X, Share2 } from 'lucide-react';
 import { useAuthStore } from '../lib/store';
 import { auth } from '../lib/firebase';
 import UserCredits from './UserCredits';
@@ -129,15 +129,20 @@ export default function Navbar() {
                     <Link
                       to="/dashboard"
                       className="glass-button px-4 py-2 flex items-center gap-2"
-                      onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <FileText className="w-5 h-5" />
                       <span>Dashboard</span>
                     </Link>
                     <Link
+                      to="/referrals"
+                      className="glass-button px-4 py-2 flex items-center gap-2"
+                    >
+                      <Share2 className="w-5 h-5" />
+                      <span>Referrals</span>
+                    </Link>
+                    <Link
                       to="/profile"
                       className="glass-button px-4 py-2 flex items-center gap-2"
-                      onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <UserCircle className="w-5 h-5" />
                       <span>Profile</span>
@@ -199,15 +204,23 @@ export default function Navbar() {
                   <>
                     <Link 
                       to="/dashboard" 
-                      className="glass-button p-3 w-full flex items-center gap-2 hover:bg-white/10 transition-colors"
+                      className="glass-button p-3 w-full flex items-center gap-2"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <FileText className="w-5 h-5" />
                       Dashboard
                     </Link>
                     <Link 
+                      to="/referrals" 
+                      className="glass-button p-3 w-full flex items-center gap-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Share2 className="w-5 h-5" />
+                      Referrals
+                    </Link>
+                    <Link 
                       to="/profile" 
-                      className="glass-button p-3 w-full flex items-center gap-2 hover:bg-white/10 transition-colors"
+                      className="glass-button p-3 w-full flex items-center gap-2"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <UserCircle className="w-5 h-5" />
