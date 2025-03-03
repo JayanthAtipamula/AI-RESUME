@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ResumeCard from './ResumeCard';
 import { FileText } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
 interface Resume {
   id: string;
@@ -56,6 +57,20 @@ export default function PreviousResumes({
 
   // Get the most recent resume's ID
   const mostRecentId = sortedResumes[0]?.id;
+
+  const handleDownload = async (resume: Resume) => {
+    try {
+      setDownloadingId(resume.id);
+      
+      // Use the downloadAsPDF function passed as a prop
+      await downloadAsPDF(resume.content, resume.role || '');
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      toast.error('Failed to download resume. Please try again.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="glass p-4 sm:p-6">

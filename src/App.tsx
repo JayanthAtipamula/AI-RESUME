@@ -2,13 +2,18 @@ import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import AppContent from './AppContent';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { Analytics } from "@vercel/analytics/react";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Toaster position="top-right" />
-      <AppContent />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Toaster position="top-right" />
+        <AppContent />
+        <Analytics />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

@@ -58,7 +58,6 @@ export default function UpgradeModal({ isOpen, onClose, plan, isMonthly }: Upgra
           (Number(plan.yearlyPrice) * 12);
 
         const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-
         console.log('Sending payment request with data:', {
           orderId,
           amount,

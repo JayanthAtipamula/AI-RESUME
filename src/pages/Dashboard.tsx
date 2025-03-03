@@ -12,6 +12,7 @@ import PreviousResumes from '../components/PreviousResumes';
 import LoadingModal from '../components/LoadingModal';
 import toast from '../lib/toast';
 import Diamond from '../components/Diamond';
+import { generateResumePDF, generateRawContentPDF } from '../lib/pdfService';
 
 interface Resume {
   id: string;
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const [modalContent, setModalContent] = React.useState<string | null>(null);
 
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isDownloading, setIsDownloading] = React.useState(false);
 
   const getLoadingSteps = (type: 'resume' | 'cover-letter') => {
     if (type === 'resume') {
@@ -293,83 +295,114 @@ export default function Dashboard() {
   };
 
   const formatResumeForPDF = (content: string) => {
-    const sections = content.split('\n\n');
-    const formattedSections = sections.map(section => {
-      const lines = section.split('\n');
+    try {
+      // Try to parse the content as JSON
+      const parsedContent = JSON.parse(content);
       
-      if (sections.indexOf(section) === 0) {
-        const [name, ...contactInfo] = lines;
-        return `
-          <div style="text-align: center; margin-bottom: 16px;">
-            <h1 style="font-size: 20px; font-weight: bold; margin: 0 0 8px 0; color: #000;">${name}</h1>
-            <p style="margin: 0; font-size: 13px; color: #333;">
-              ${contactInfo.join(' | ')}
-            </p>
-          </div>
-        `;
+      // If it's already structured data, return it as is
+      if (typeof parsedContent === 'object' && parsedContent !== null) {
+        return parsedContent;
       }
-
-      if (lines[0].toUpperCase() === lines[0]) {
-        return `
-          <div style="margin-bottom: 14px;">
-            <h2 style="font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 0 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #000; color: #000;">
-              ${lines[0]}
-            </h2>
-            <div style="padding-left: 0;">
-              ${lines.slice(1).map(line => {
-                if (line.startsWith('-')) {
-                  return `<p style="margin: 0 0 4px 0; padding-left: 12px; position: relative; font-size: 13px; line-height: 1.4;">
-                    <span style="position: absolute; left: 4px;">•</span>
-                    ${line.substring(1).trim()}
-                  </p>`;
-                }
-                return `<p style="margin: 0 0 4px 0; font-size: 13px; line-height: 1.4;">${line}</p>`;
-              }).join('')}
-            </div>
-          </div>
-        `;
+    } catch (e) {
+      // If it's not valid JSON, it's probably raw text
+      // Continue with text formatting
+    }
+    
+    // For raw text content, try to extract sections
+    const sections: any = {
+      personalInfo: {}
+    };
+    
+    // Split content into lines
+    const lines = content.split('\n');
+    
+    // Extract name and contact info from the first lines
+    if (lines.length > 0) {
+      sections.personalInfo.name = lines[0].trim();
+    }
+    
+    if (lines.length > 1) {
+      const contactLine = lines[1].trim();
+      
+      // Try to extract email, phone, location
+      const emailMatch = contactLine.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+      if (emailMatch) {
+        sections.personalInfo.email = emailMatch[0];
       }
-      return `<p style="margin: 0 0 4px 0; font-size: 13px; line-height: 1.4;">${section}</p>`;
-    });
-
-    return `
-      <div style="font-family: Arial, sans-serif; color: #333; padding: 0;">
-        ${formattedSections.join('\n')}
-      </div>
-    `;
+      
+      const phoneMatch = contactLine.match(/(\(\d{3}\)\s*\d{3}-\d{4}|\d{3}-\d{3}-\d{4})/);
+      if (phoneMatch) {
+        sections.personalInfo.phone = phoneMatch[0];
+      }
+      
+      // Location might be what's left after removing email and phone
+      let location = contactLine;
+      if (emailMatch) location = location.replace(emailMatch[0], '');
+      if (phoneMatch) location = location.replace(phoneMatch[0], '');
+      location = location.replace(/\|/g, '').trim();
+      
+      if (location) {
+        sections.personalInfo.location = location;
+      }
+    }
+    
+    // Extract sections
+    let currentSection = '';
+    let sectionContent = '';
+    
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check if this is a section header
+      if (line.toUpperCase() === line && line.length > 0 && !line.includes(':')) {
+        // Save previous section
+        if (currentSection && sectionContent) {
+          sections[currentSection.toLowerCase()] = sectionContent.trim();
+        }
+        
+        // Start new section
+        currentSection = line.toLowerCase();
+        sectionContent = '';
+      } else if (currentSection) {
+        // Add to current section
+        sectionContent += line + '\n';
+      }
+    }
+    
+    // Save the last section
+    if (currentSection && sectionContent) {
+      sections[currentSection.toLowerCase()] = sectionContent.trim();
+    }
+    
+    // If we couldn't extract structured data, just use the raw content
+    if (Object.keys(sections).length <= 1) {
+      return content;
+    }
+    
+    return sections;
   };
 
   const downloadAsPDF = async (content: string, role: string) => {
-    const formattedContent = formatResumeForPDF(content);
-    const element = document.createElement('div');
-    element.innerHTML = formattedContent;
-    
-    const timestamp = new Date().toLocaleDateString().replace(/\//g, '-');
-    const type = activeTab === 'resume' ? 'resume' : 'cover-letter';
-    const filename = `${type}-${role.toLowerCase().replace(/\s+/g, '-')}-${timestamp}.pdf`;
-
-    const options = {
-      margin: [15, 15, 15, 15],
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2,
-        letterRendering: true,
-        useCORS: true
-      },
-      jsPDF: { 
-        unit: 'mm', 
-        format: 'a4', 
-        orientation: 'portrait',
-        putTotalPages: true,
-        compress: true
-      }
-    };
-
     try {
-      await html2pdf().from(element).set(options).save();
+      setIsDownloading(true);
+      
+      console.log('Downloading PDF for role:', role);
+      
+      // Check if content is a string or an object
+      if (typeof content === 'string') {
+        // For raw content (like from previous resumes)
+        await generateRawContentPDF(content, role);
+      } else {
+        // For structured data
+        await generateResumePDF(content);
+      }
+      
+      toast.success('Resume downloaded successfully!');
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download resume. Please try again.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -404,6 +437,44 @@ export default function Dashboard() {
     });
   };
 
+  // Add a test function to test PDF generation
+  const testPdfGeneration = async () => {
+    try {
+      console.log('Testing PDF generation');
+      
+      // Test the backend PDF generation endpoint directly
+      const response = await fetch('http://localhost:5000/api/test-pdf');
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      // Get the PDF as a blob
+      const blob = await response.blob();
+      
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary link element
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Append to the document, click it, and remove it
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Clean up the URL object
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Test PDF downloaded successfully!');
+    } catch (error) {
+      console.error('Error testing PDF generation:', error);
+      toast.error('Failed to test PDF generation. Please try again.');
+    }
+  };
+
   if (!profile) {
     return (
       <div className="min-h-screen pt-28 px-4 flex items-start justify-center">
@@ -421,67 +492,76 @@ export default function Dashboard() {
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8 mt-20">
         <div className="flex flex-col space-y-6">
-          <LoadingModal
-            isOpen={showLoadingModal}
-            type={activeTab}
-            steps={loadingSteps}
-            content={modalContent}
-            onClose={handleCloseModal}
-            downloadAsPDF={downloadAsPDF}
-            downloadAsText={downloadAsText}
-            jobDescription={jobDescription}
-            extractRole={extractRole}
-          />
-          
-          <div className="max-w-4xl mx-auto">
+      <LoadingModal
+        isOpen={showLoadingModal}
+        type={activeTab}
+        steps={loadingSteps}
+        content={modalContent}
+        onClose={handleCloseModal}
+        downloadAsPDF={downloadAsPDF}
+        downloadAsText={downloadAsText}
+        jobDescription={jobDescription}
+        extractRole={extractRole}
+      />
+      
+      <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-              <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
+        <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
             </div>
 
-            <GenerateContent
-              type={activeTab}
-              jobDescription={jobDescription}
-              setJobDescription={setJobDescription}
-              handleGenerate={handleGenerate}
-              isGenerating={isGenerating}
+        <GenerateContent
+          type={activeTab}
+          jobDescription={jobDescription}
+          setJobDescription={setJobDescription}
+          handleGenerate={handleGenerate}
+          isGenerating={isGenerating}
               userData={userData}
-            />
+        />
 
-            <ResumeDisplay
-              content={generatedContent}
-              jobDescription={jobDescription}
-              type={activeTab}
-              downloadAsPDF={downloadAsPDF}
-              downloadAsText={downloadAsText}
-              extractRole={extractRole}
-              formatResumeDisplay={formatResumeDisplay}
-            />
+        <ResumeDisplay
+          content={generatedContent}
+          jobDescription={jobDescription}
+          type={activeTab}
+          downloadAsPDF={downloadAsPDF}
+          downloadAsText={downloadAsText}
+          extractRole={extractRole}
+          formatResumeDisplay={formatResumeDisplay}
+        />
 
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
-              </div>
-            ) : previousContent.length > 0 ? (
-              <PreviousResumes
-                resumes={previousContent}
-                editingResume={editingContent}
-                expandedResume={expandedContent}
-                editedContent={editedContent}
-                isDeleting={isDeleting}
-                onToggleExpand={toggleExpand}
-                onEdit={handleEdit}
-                onSave={handleSaveEdit}
-                onCancel={handleCancelEdit}
-                onDelete={(id) => handleDelete(id, activeTab)}
-                onEditContentChange={setEditedContent}
-                downloadAsPDF={downloadAsPDF}
-                downloadAsText={downloadAsText}
-                formatResumeDisplay={formatResumeDisplay}
-              />
-            ) : null}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
           </div>
+        ) : previousContent.length > 0 ? (
+          <PreviousResumes
+            resumes={previousContent}
+            editingResume={editingContent}
+            expandedResume={expandedContent}
+            editedContent={editedContent}
+            isDeleting={isDeleting}
+            onToggleExpand={toggleExpand}
+            onEdit={handleEdit}
+            onSave={handleSaveEdit}
+            onCancel={handleCancelEdit}
+            onDelete={(id) => handleDelete(id, activeTab)}
+            onEditContentChange={setEditedContent}
+            downloadAsPDF={downloadAsPDF}
+            downloadAsText={downloadAsText}
+            formatResumeDisplay={formatResumeDisplay}
+          />
+        ) : null}
+      </div>
         </div>
       </div>
+      {process.env.NODE_ENV === 'development' && (
+        <button
+          onClick={testPdfGeneration}
+          className="glass-button px-4 py-2 text-sm"
+          title="Test PDF Generation"
+        >
+          Test PDF
+        </button>
+      )}
     </div>
   );
 }

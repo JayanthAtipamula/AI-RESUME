@@ -158,7 +158,7 @@ export default function Login() {
 
           <button
             onClick={handleGoogleSignIn}
-            className="signin-button group w-full flex items-center justify-center space-x-3"
+            className="w-full flex items-center justify-center space-x-3 bg-white text-black py-2.5 px-4 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <img
               src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
