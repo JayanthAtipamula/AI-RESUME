@@ -393,8 +393,14 @@ export default function Dashboard() {
         // For raw content (like from previous resumes)
         await generateRawContentPDF(content, role);
       } else {
-        // For structured data
-        await generateResumePDF(content);
+        // For structured data, ensure all fields are included
+        const resumeData = {
+          ...content,
+          skills: content.skills || [], // This will now be an array of skill categories
+          hobbies: content.hobbies || [],
+          languages: content.languages || []
+        };
+        await generateResumePDF(resumeData);
       }
       
       toast.success('Resume downloaded successfully!');

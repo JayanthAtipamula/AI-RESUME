@@ -33,6 +33,11 @@ interface Project {
   link?: string;
 }
 
+interface SkillCategory {
+  name: string;
+  skills: string[];
+}
+
 interface Profile {
   name: string;
   email: string;
@@ -40,9 +45,11 @@ interface Profile {
   location: string;
   workExperience: WorkExperience[];
   education: Education[];
-  skills: string[];
+  skills: SkillCategory[];
   certifications: Certification[];
   projects: Project[];
+  hobbies: string[];
+  languages: string[];
 }
 
 const initialProfile: Profile = {
@@ -55,6 +62,34 @@ const initialProfile: Profile = {
   skills: [],
   certifications: [],
   projects: [],
+  hobbies: [],
+  languages: []
+};
+
+// Helper function to safely format skills data
+const formatSkills = (skills: any): string => {
+  if (Array.isArray(skills)) {
+    // If it's an array of strings (old format)
+    if (skills.length > 0 && typeof skills[0] === 'string') {
+      return skills.join(', ');
+    }
+    // If it's an array of skill categories (new format)
+    if (skills.length > 0 && typeof skills[0] === 'object') {
+      return skills.map(category => 
+        `${category.name}: ${category.skills.join(', ')}`
+      ).join('\n');
+    }
+  } else if (typeof skills === 'string') {
+    return skills;
+  } else if (typeof skills === 'object' && skills !== null) {
+    // Handle case where skills is an object with categories
+    return Object.entries(skills)
+      .map(([category, categorySkills]) => 
+        `${category}: ${Array.isArray(categorySkills) ? categorySkills.join(', ') : categorySkills}`
+      )
+      .join('\n');
+  }
+  return '';
 };
 
 function Profile() {
@@ -68,7 +103,23 @@ function Profile() {
         const docRef = doc(db, 'profiles', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setProfile({ ...initialProfile, ...docSnap.data() as Profile });
+          const profileData = docSnap.data() as Profile;
+          
+          // Ensure skills is always an array of SkillCategory objects
+          const skills = Array.isArray(profileData.skills) 
+            ? profileData.skills 
+            : [];
+          
+          // Convert old format (array of strings) to new format if needed
+          const formattedSkills = skills.length > 0 && typeof skills[0] === 'string'
+            ? [{ name: 'Skills', skills: skills as unknown as string[] }]
+            : skills;
+          
+          setProfile({ 
+            ...initialProfile, 
+            ...profileData,
+            skills: formattedSkills
+          });
         }
       }
     };
@@ -117,16 +168,18 @@ function Profile() {
         }
       ],
       skills: [
-        'React',
-        'TypeScript',
-        'Node.js',
-        'Python',
-        'AWS',
-        'Docker',
-        'Kubernetes',
-        'GraphQL',
-        'MongoDB',
-        'PostgreSQL'
+        {
+          name: 'Technical Skills',
+          skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS', 'Docker', 'Kubernetes']
+        },
+        {
+          name: 'Soft Skills',
+          skills: ['Leadership', 'Communication', 'Problem Solving', 'Team Collaboration']
+        },
+        {
+          name: 'Tools',
+          skills: ['Git', 'JIRA', 'Figma', 'VS Code', 'Jenkins']
+        }
       ],
       certifications: [
         {
@@ -153,6 +206,17 @@ function Profile() {
           technologies: 'Python, OpenAI API, FastAPI, React',
           link: 'https://github.com/johndoe/ai-content'
         }
+      ],
+      hobbies: [
+        'Photography',
+        'Hiking',
+        'Chess',
+        'Playing Guitar'
+      ],
+      languages: [
+        'English (Native)',
+        'Spanish (Fluent)',
+        'French (Intermediate)'
       ]
     });
   };
@@ -200,20 +264,28 @@ function Profile() {
     });
   };
 
-  const addSkill = () => {
+  const addSkillCategory = () => {
     setProfile({
       ...profile,
-      skills: [...profile.skills, ''],
+      skills: [...profile.skills, { name: '', skills: [] }],
     });
   };
 
-  const updateSkill = (index: number, value: string) => {
+  const updateSkillCategoryName = (index: number, value: string) => {
     const newSkills = [...profile.skills];
-    newSkills[index] = value;
+    newSkills[index] = { ...newSkills[index], name: value };
     setProfile({ ...profile, skills: newSkills });
   };
 
-  const removeSkill = (index: number) => {
+  const updateSkillsInCategory = (categoryIndex: number, value: string) => {
+    const newSkills = [...profile.skills];
+    // Split by comma and trim each skill
+    const skillsArray = value.split(',').map(skill => skill.trim()).filter(skill => skill !== '');
+    newSkills[categoryIndex] = { ...newSkills[categoryIndex], skills: skillsArray };
+    setProfile({ ...profile, skills: newSkills });
+  };
+
+  const removeSkillCategory = (index: number) => {
     setProfile({
       ...profile,
       skills: profile.skills.filter((_, i) => i !== index),
@@ -263,6 +335,46 @@ function Profile() {
     setProfile({
       ...profile,
       projects: profile.projects.filter((_, i) => i !== index),
+    });
+  };
+
+  const addHobby = () => {
+    setProfile({
+      ...profile,
+      hobbies: [...profile.hobbies, ''],
+    });
+  };
+
+  const updateHobby = (index: number, value: string) => {
+    const newHobbies = [...profile.hobbies];
+    newHobbies[index] = value;
+    setProfile({ ...profile, hobbies: newHobbies });
+  };
+
+  const removeHobby = (index: number) => {
+    setProfile({
+      ...profile,
+      hobbies: profile.hobbies.filter((_, i) => i !== index),
+    });
+  };
+
+  const addLanguage = () => {
+    setProfile({
+      ...profile,
+      languages: [...profile.languages, ''],
+    });
+  };
+
+  const updateLanguage = (index: number, value: string) => {
+    const newLanguages = [...profile.languages];
+    newLanguages[index] = value;
+    setProfile({ ...profile, languages: newLanguages });
+  };
+
+  const removeLanguage = (index: number) => {
+    setProfile({
+      ...profile,
+      languages: profile.languages.filter((_, i) => i !== index),
     });
   };
 
@@ -478,22 +590,53 @@ function Profile() {
 
         {/* Skills */}
         <div className="glass p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">Skills</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Skills (comma-separated)
-              </label>
-              <textarea
-                value={profile.skills.join(', ')}
-                onChange={(e) => setProfile({
-                  ...profile,
-                  skills: e.target.value.split(',').map(skill => skill.trim()).filter(Boolean)
-                })}
-                className="glass-input w-full h-24"
-                placeholder="React, TypeScript, Node.js, AWS, etc."
-              />
-            </div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-white">Skills</h2>
+            <button
+              onClick={addSkillCategory}
+              className="glass-button flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Skill Category</span>
+            </button>
+          </div>
+          <div className="space-y-6">
+            {Array.isArray(profile.skills) && profile.skills.map((category, categoryIndex) => (
+              <div key={categoryIndex} className="glass p-4">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Category Name</label>
+                    <input
+                      type="text"
+                      value={category.name}
+                      onChange={(e) => updateSkillCategoryName(categoryIndex, e.target.value)}
+                      className="glass-input w-full"
+                      placeholder="Technical Skills, Soft Skills, Tools, etc."
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeSkillCategory(categoryIndex)}
+                    className="glass-button p-2 ml-2"
+                  >
+                    <Trash2 className="w-5 h-5 text-red-400" />
+                  </button>
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Skills (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={Array.isArray(category.skills) ? category.skills.join(', ') : ''}
+                    onChange={(e) => updateSkillsInCategory(categoryIndex, e.target.value)}
+                    className="glass-input w-full"
+                    placeholder="React, TypeScript, Node.js, Python, AWS, Docker, etc."
+                  />
+                </div>
+              </div>
+            ))}
+            {(!Array.isArray(profile.skills) || profile.skills.length === 0) && (
+              <p className="text-gray-400 text-sm">Add skill categories and skills to showcase your expertise.</p>
+            )}
           </div>
         </div>
 
@@ -625,6 +768,78 @@ function Profile() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Hobbies */}
+        <div className="glass p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-white">Hobbies & Interests</h2>
+            <button
+              onClick={() => addHobby()}
+              className="glass-button flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Hobby</span>
+            </button>
+          </div>
+          <div className="space-y-4">
+            {profile.hobbies.map((hobby, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={hobby}
+                  onChange={(e) => updateHobby(index, e.target.value)}
+                  className="glass-input flex-grow"
+                  placeholder="Photography, Hiking, etc."
+                />
+                <button
+                  onClick={() => removeHobby(index)}
+                  className="glass-button p-2"
+                >
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                </button>
+              </div>
+            ))}
+            {profile.hobbies.length === 0 && (
+              <p className="text-gray-400 text-sm">Add your hobbies and interests to make your resume more personable.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Languages */}
+        <div className="glass p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-white">Languages</h2>
+            <button
+              onClick={() => addLanguage()}
+              className="glass-button flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Language</span>
+            </button>
+          </div>
+          <div className="space-y-4">
+            {profile.languages.map((language, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={language}
+                  onChange={(e) => updateLanguage(index, e.target.value)}
+                  className="glass-input flex-grow"
+                  placeholder="English (Native), Spanish (Fluent), etc."
+                />
+                <button
+                  onClick={() => removeLanguage(index)}
+                  className="glass-button p-2"
+                >
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                </button>
+              </div>
+            ))}
+            {profile.languages.length === 0 && (
+              <p className="text-gray-400 text-sm">Add languages you speak and your proficiency level.</p>
+            )}
           </div>
         </div>
 

@@ -14,9 +14,11 @@ const handleDownload = async () => {
         summary: resume.summary || '',
         workExperience: resume.workExperience || [],
         education: resume.education || [],
-        skills: resume.skills || [],
+        skills: resume.skills || [], // This will now be an array of skill categories
         projects: resume.projects || [],
-        certifications: resume.certifications || []
+        certifications: resume.certifications || [],
+        hobbies: resume.hobbies || [],
+        languages: resume.languages || []
       };
       
       await generateResumePDF(resumeData);

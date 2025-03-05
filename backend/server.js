@@ -310,11 +310,63 @@ app.post("/api/generate-pdf", (req, res) => {
       }
 
       // Skills
-      if (skills && skills.length > 0) {
+      if (skills) {
         addSectionHeader('SKILLS');
         
-        // Group skills into categories if possible
-        if (typeof skills === 'object' && !Array.isArray(skills)) {
+        // Helper function to format skills data
+        const formatSkills = (skillsData) => {
+          if (Array.isArray(skillsData)) {
+            // If it's an array of strings (old format)
+            if (skillsData.length > 0 && typeof skillsData[0] === 'string') {
+              return skillsData.join(', ');
+            }
+            // If it's an array of skill categories (new format)
+            if (skillsData.length > 0 && typeof skillsData[0] === 'object' && skillsData[0].name) {
+              return skillsData.map(category => 
+                `${category.name}: ${category.skills.join(', ')}`
+              ).join('\n');
+            }
+            return skillsData.join(', ');
+          } else if (typeof skillsData === 'string') {
+            return skillsData;
+          } else if (typeof skillsData === 'object' && skillsData !== null) {
+            // If it's an object with categories
+            return Object.entries(skillsData).map(([category, categorySkills]) => {
+              const skillsText = Array.isArray(categorySkills) 
+                ? categorySkills.join(', ') 
+                : typeof categorySkills === 'string'
+                  ? categorySkills
+                  : '';
+              return `${category}: ${skillsText}`;
+            }).join('\n');
+          }
+          return '';
+        };
+        
+        // Check if skills is an array of skill categories (new format)
+        if (Array.isArray(skills) && skills.length > 0 && typeof skills[0] === 'object' && skills[0].name) {
+          skills.forEach((category, index) => {
+            doc.fontSize(9)
+               .font('Helvetica-Bold')
+               .fillColor(primaryColor)
+               .text(`${category.name}:`);
+            
+            const skillsText = Array.isArray(category.skills) 
+              ? category.skills.join(', ') 
+              : '';
+            
+            doc.fontSize(9)
+               .font('Helvetica')
+               .fillColor(primaryColor)
+               .text(skillsText, { lineGap: 2 });
+            
+            if (index < skills.length - 1) {
+              doc.moveDown(0.4);
+            }
+          });
+        }
+        // Group skills into categories if possible (old object format)
+        else if (typeof skills === 'object' && !Array.isArray(skills) && skills !== null) {
           // If skills is an object with categories
           Object.entries(skills).forEach(([category, categorySkills], index) => {
             doc.fontSize(9)
@@ -324,7 +376,9 @@ app.post("/api/generate-pdf", (req, res) => {
             
             const skillsText = Array.isArray(categorySkills) 
               ? categorySkills.join(', ') 
-              : categorySkills;
+              : typeof categorySkills === 'string'
+                ? categorySkills
+                : '';
             
             doc.fontSize(9)
                .font('Helvetica')
@@ -336,8 +390,8 @@ app.post("/api/generate-pdf", (req, res) => {
             }
           });
         } else {
-          // If skills is just an array
-          const skillsText = Array.isArray(skills) ? skills.join(', ') : skills;
+          // If skills is an array of strings or a string
+          const skillsText = formatSkills(skills);
           doc.fontSize(9)
              .font('Helvetica')
              .fillColor(primaryColor)
@@ -551,6 +605,26 @@ app.get("/api/test-pdf", (req, res) => {
        .font('Helvetica')
        .fillColor(primaryColor)
        .text('Other Skills: Agile Development, CI/CD Pipelines, Cloud Computing, Team Leadership', { lineGap: 2 });
+    
+    doc.moveDown(0.7);
+    
+    // Add languages section
+    addSectionHeader('LANGUAGES');
+    
+    doc.fontSize(9)
+       .font('Helvetica')
+       .fillColor(primaryColor)
+       .text('English (Native), Spanish (Fluent), French (Intermediate)', { lineGap: 2 });
+    
+    doc.moveDown(0.7);
+    
+    // Add hobbies section
+    addSectionHeader('HOBBIES & INTERESTS');
+    
+    doc.fontSize(9)
+       .font('Helvetica')
+       .fillColor(primaryColor)
+       .text('Photography, Hiking, Chess, Playing Guitar', { lineGap: 2 });
     
     // Finalize the PDF
     doc.end();

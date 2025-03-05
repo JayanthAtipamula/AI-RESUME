@@ -34,11 +34,18 @@ export const generateResume = async (profile: any, jobDescription: string) => {
     [Degree], [Year], CGPA: [CGPA]
 
     SKILLS
-    [Technical Skills]: [List relevant skills]
-    [Other Skills]: [List relevant skills]
+    [Skill Category 1]: [List relevant skills in this category]
+    [Skill Category 2]: [List relevant skills in this category]
+    [Skill Category 3]: [List relevant skills in this category]
 
     CERTIFICATIONS
     [Certification Name], [Issuing Organization], [Year]
+
+    LANGUAGES
+    [List languages with proficiency levels]
+
+    HOBBIES & INTERESTS
+    [List relevant hobbies and interests]
 
     Use the following profile information:
     ${JSON.stringify(profile, null, 2)}
@@ -58,8 +65,15 @@ export const generateResume = async (profile: any, jobDescription: string) => {
     9. Maintain professional formatting
     10. Ensure all dates and contact info are properly formatted
     11. For education entries, place CGPA on the same line as degree and year
+    12. Include languages section with proficiency levels if available in profile
+    13. Include a brief hobbies section if it adds value to the application
+    14. Maintain the skill categories exactly as provided in the profile
+    15. For each skill category, list the most relevant skills for the job
+    16 .Use More Measurable Achievements
+        Include quantifiable metrics (e.g., "Reduced cloud costs by 20%" instead of "Optimized cloud costs").
+        Highlight performance improvements with specific percentages, time reductions, or cost savings.
+    17 .Extract relevant keywords from job descriptions and ensure they appear naturally in the resume.
   `;
-
   const chatCompletion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],
     model: "llama-3.3-70b-versatile",
@@ -116,6 +130,7 @@ export const generateCoverLetter = async (profile: any, jobDescription: string) 
     8. Keep to one page
     9. Use active voice
     10. Proofread for clarity and flow
+    11. If relevant, briefly mention language skills or personal interests that align with the company culture
   `;
 
   const chatCompletion = await groq.chat.completions.create({
