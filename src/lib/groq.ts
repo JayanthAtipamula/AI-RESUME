@@ -73,6 +73,7 @@ export const generateResume = async (profile: any, jobDescription: string) => {
         Include quantifiable metrics (e.g., "Reduced cloud costs by 20%" instead of "Optimized cloud costs").
         Highlight performance improvements with specific percentages, time reductions, or cost savings.
     17 .Extract relevant keywords from job descriptions and ensure they appear naturally in the resume.
+    18 .dont give any other text or comments in the resume.that you are generating a resume.and done so and so.
   `;
   const chatCompletion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],
