@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, useSearchParams } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './lib/firebase';
@@ -12,8 +12,10 @@ import Profile from './pages/Profile';
 import SharedResume from './pages/SharedResume';
 import PrivateRoute from './components/PrivateRoute';
 import PaymentCallback from './pages/PaymentCallback';
+import PaymentSuccess from './pages/PaymentSuccess';
 import Referrals from './pages/Referrals';
 import { storeReferralCode } from './lib/utils';
+import { UserData } from './types';
 
 function AppContent() {
   const setUser = useAuthStore((state) => state.setUser);
@@ -29,7 +31,7 @@ function AppContent() {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
-            setUserData(userDoc.data());
+            setUserData(userDoc.data() as UserData);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -67,6 +69,7 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/r/:resumeId" element={<SharedResume />} />
         <Route element={<PrivateRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -78,4 +81,4 @@ function AppContent() {
   );
 }
 
-export default AppContent; 
+export default AppContent;

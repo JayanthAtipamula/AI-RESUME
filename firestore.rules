@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is accessing their own data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User collection rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+
+      // Allow access to user's resumes
+      match /resumes/{resumeId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Allow access to user's cover letters
+      match /coverLetters/{letterId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Profile collection rules
+    match /profiles/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // Allow checking referral codes
+    match /users/{userId} {
+      allow read: if isAuthenticated() &&
+        (isOwner(userId) || 
+        (request.query.limit <= 1 && 
+         resource.data.referralCode == request.query.referralCode));
+    }
+  }
+}

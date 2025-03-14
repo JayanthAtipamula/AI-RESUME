@@ -1,11 +1,10 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { useMediaQuery } from "../../hooks/use-media-query";
 import { Label } from "./label";
 import { Switch } from "./switch";
 import confetti from "canvas-confetti";
-import { Link } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import UpgradeModal from '../UpgradeModal';
 
@@ -32,14 +31,14 @@ export function Pricing({
   title = "Simple, Transparent Pricing",
   description = "Choose the plan that works for you. All plans include access to our platform, lead generation tools, and dedicated support.",
 }: PricingProps) {
-  const [isMonthly, setIsMonthly] = useState(true);
+  const [isMonthly, setIsMonthly] = useState(false); // Default to annual billing
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const switchRef = useRef<HTMLButtonElement>(null);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
 
   const handleToggle = (checked: boolean) => {
     setIsMonthly(!checked);
-    if (checked && switchRef.current) {
+    if (!checked && switchRef.current) {
       const rect = switchRef.current.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
@@ -62,7 +61,13 @@ export function Pricing({
   };
 
   const handlePlanClick = (plan: PricingPlan) => {
-    setSelectedPlan(plan);
+    if (plan.name === "PRO") {
+      setSelectedPlan(plan);
+    } else if (plan.name === "ENTERPRISE") {
+      window.location.href = plan.href;
+    } else {
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -80,18 +85,17 @@ export function Pricing({
 
           <div className="flex justify-center mb-10">
             <label className="relative inline-flex items-center cursor-pointer">
-              <Label className="text-white">
-                <Switch
-                  ref={switchRef as any}
-                  checked={!isMonthly}
-                  onCheckedChange={handleToggle}
-                  className="relative"
-                />
+              <Label className="text-white mr-2">Monthly</Label>
+              <Switch
+                ref={switchRef as any}
+                checked={!isMonthly}
+                onCheckedChange={handleToggle}
+                className="relative"
+              />
+              <Label className="text-white ml-2">
+                Annual <span className="text-neon-blue">(Save 20%)</span>
               </Label>
             </label>
-            <span className="ml-2 font-semibold text-white">
-              Annual billing <span className="text-neon-blue">(Save 20%)</span>
-            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -168,19 +172,15 @@ export function Pricing({
 
                   <hr className="w-full my-4 border-white/10" />
 
-                  <Link
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePlanClick(plan);
-                    }}
-                    to={plan.href}
+                  <button
+                    onClick={() => handlePlanClick(plan)}
                     className={cn(
                       "glass-button w-full",
                       plan.isPopular ? "bg-neon-blue text-black hover:bg-neon-blue/90" : ""
                     )}
                   >
                     {plan.buttonText}
-                  </Link>
+                  </button>
                   <p className="mt-6 text-xs leading-5 text-gray-400">
                     {plan.description}
                   </p>
@@ -194,7 +194,6 @@ export function Pricing({
       <UpgradeModal
         isOpen={!!selectedPlan}
         onClose={() => setSelectedPlan(null)}
-        plan={selectedPlan}
         isMonthly={isMonthly}
       />
     </>

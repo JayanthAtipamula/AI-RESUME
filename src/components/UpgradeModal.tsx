@@ -6,11 +6,22 @@ import { useAuthStore } from '../lib/store';
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isMonthly: boolean;
 }
 
-const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
+const PAYMENT_LINKS = {
+  cashfree: {
+    monthly: 'https://payments.cashfree.com/forms?code=1m-pro&redirect_url=https://ai-resume.vercel.app/payment/success',
+    annual: 'https://payments.cashfree.com/forms?code=1Y-pro&redirect_url=https://ai-resume.vercel.app/payment/success'
+  },
+  stripe: {
+    monthly: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H?success_url=https://ai-resume.vercel.app/payment/success',
+    annual: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H1?success_url=https://ai-resume.vercel.app/payment/success'
+  }
+};
+
+const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly }) => {
   const user = useAuthStore((state) => state.user);
-  const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cashfree' | 'stripe'>('cashfree');
 
   if (!isOpen) return null;
@@ -19,20 +30,15 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
     setPaymentMethod(method);
   };
 
-  const handleContinue = async () => {
+  const handleCompletePayment = () => {
     if (!user) {
       toast.error('Please log in to continue');
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate processing for demo purposes
-    setTimeout(() => {
-      toast.success(`Selected payment method: ${paymentMethod === 'cashfree' ? 'Cashfree UPI' : 'Stripe'}`);
-      setIsLoading(false);
-      onClose();
-    }, 1000);
+    const billingPeriod = isMonthly ? 'monthly' : 'annual';
+    const paymentLink = PAYMENT_LINKS[paymentMethod][billingPeriod];
+    window.location.href = paymentLink;
   };
 
   return (
@@ -45,7 +51,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-2xl font-bold mb-6 text-white text-center">Select Payment Method</h2>
+        <h2 className="text-2xl font-bold mb-6 text-white text-center">Complete Your Purchase</h2>
 
         <div className="glass p-4 rounded-lg mb-6">
           <div className="space-y-3">
@@ -83,17 +89,10 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
 
         <div className="flex justify-end">
           <button
-            onClick={handleContinue}
-            disabled={isLoading}
-            className="glass-button py-2 px-6 flex items-center gap-2"
+            onClick={handleCompletePayment}
+            className="glass-button py-2 px-6"
           >
-            {isLoading && (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            )}
-            Continue to Payment
+            Complete Payment
           </button>
         </div>
       </div>
@@ -101,4 +100,4 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
-export default UpgradeModal; 
+export default UpgradeModal;
