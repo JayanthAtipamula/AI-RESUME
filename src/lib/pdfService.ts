@@ -2,9 +2,7 @@
  * Service for generating and downloading resume PDFs
  */
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * Generate a resume PDF using the backend service

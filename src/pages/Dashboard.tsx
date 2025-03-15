@@ -449,7 +449,7 @@ export default function Dashboard() {
       console.log('Testing PDF generation');
       
       // Test the backend PDF generation endpoint directly
-      const response = await fetch('http://localhost:5000/api/test-pdf');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/test-pdf`);
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
@@ -559,7 +559,7 @@ export default function Dashboard() {
       </div>
         </div>
       </div>
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.MODE === 'development' && (
         <button
           onClick={testPdfGeneration}
           className="glass-button px-4 py-2 text-sm"
