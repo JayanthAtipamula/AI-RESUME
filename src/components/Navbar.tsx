@@ -47,6 +47,13 @@ export default function Navbar() {
   const isHomePage = location.pathname === '/';
   const isLoginPage = location.pathname === '/login';
 
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', current: location.pathname === '/dashboard' },
+    { name: 'Referrals', href: '/referrals', current: location.pathname === '/referrals' },
+    { name: 'My Plan', href: '/dashboard?tab=myplan', current: location.pathname === '/dashboard?tab=myplan' },
+    { name: 'Profile', href: '/profile', current: location.pathname === '/profile' },
+  ];
+
   return (
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -128,24 +135,35 @@ export default function Navbar() {
                   <>
                     <Link
                       to="/dashboard"
-                      className="glass-button px-4 py-2 flex items-center gap-2"
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        location.pathname === '/dashboard' ? 'text-neon-blue' : 'text-gray-300 hover:text-white'
+                      }`}
                     >
-                      <FileText className="w-5 h-5" />
-                      <span>Dashboard</span>
+                      Dashboard
                     </Link>
                     <Link
                       to="/referrals"
-                      className="glass-button px-4 py-2 flex items-center gap-2"
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        location.pathname === '/referrals' ? 'text-neon-blue' : 'text-gray-300 hover:text-white'
+                      }`}
                     >
-                      <Share2 className="w-5 h-5" />
-                      <span>Referrals</span>
+                      Referrals
+                    </Link>
+                    <Link
+                      to="/dashboard?tab=myplan"
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        location.pathname === '/dashboard?tab=myplan' ? 'text-neon-blue' : 'text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      My Plan
                     </Link>
                     <Link
                       to="/profile"
-                      className="glass-button px-4 py-2 flex items-center gap-2"
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        location.pathname === '/profile' ? 'text-neon-blue' : 'text-gray-300 hover:text-white'
+                      }`}
                     >
-                      <UserCircle className="w-5 h-5" />
-                      <span>Profile</span>
+                      Profile
                     </Link>
                     <button
                       onClick={handleLogout}
@@ -204,7 +222,9 @@ export default function Navbar() {
                   <>
                     <Link 
                       to="/dashboard" 
-                      className="glass-button p-3 w-full flex items-center gap-2"
+                      className={`glass-button p-3 w-full flex items-center gap-2 ${
+                        location.pathname === '/dashboard' ? 'bg-white/10' : ''
+                      }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <FileText className="w-5 h-5" />
@@ -212,15 +232,28 @@ export default function Navbar() {
                     </Link>
                     <Link 
                       to="/referrals" 
-                      className="glass-button p-3 w-full flex items-center gap-2"
+                      className={`glass-button p-3 w-full flex items-center gap-2 ${
+                        location.pathname === '/referrals' ? 'bg-white/10' : ''
+                      }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Share2 className="w-5 h-5" />
                       Referrals
                     </Link>
                     <Link 
+                      to="/dashboard?tab=myplan"
+                      className={`glass-button p-3 w-full flex items-center gap-2 ${
+                        location.pathname === '/dashboard?tab=myplan' ? 'bg-white/10' : ''
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      My Plan
+                    </Link>
+                    <Link 
                       to="/profile" 
-                      className="glass-button p-3 w-full flex items-center gap-2"
+                      className={`glass-button p-3 w-full flex items-center gap-2 ${
+                        location.pathname === '/profile' ? 'bg-white/10' : ''
+                      }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <UserCircle className="w-5 h-5" />

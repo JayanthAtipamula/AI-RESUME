@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
@@ -8,17 +8,24 @@ import {
   Download, 
   Share2, 
   Sparkles, 
-  ChevronRight,
+  ArrowRight,
   CheckCircle2,
-  MessageSquare,
   Star,
   Plus,
   Minus,
-  ClipboardEdit,
-  FileSearch,
-  FileDown,
-  ArrowRight,
-  Rocket
+  Briefcase,
+  GraduationCap,
+  Send,
+  Clock,
+  Target,
+  Zap,
+  X,
+  Check,
+  TrendingUp,
+  Users,
+  Award,
+  Timer,
+  ArrowRight as RightArrow
 } from 'lucide-react';
 import { Pricing } from '../components/ui/pricing';
 import { TestimonialsSection } from '../components/ui/testimonials-with-marquee';
@@ -27,6 +34,7 @@ import { storeReferralCode } from '../lib/utils';
 function Home() {
   const [openFaq, setOpenFaq] = React.useState<number | null>(null);
   const [searchParams] = useSearchParams();
+  const [metricsVisible, setMetricsVisible] = useState(false);
 
   // Check for referral code when home page loads
   useEffect(() => {
@@ -36,29 +44,78 @@ function Home() {
     }
   }, [searchParams]);
 
+  // Intersection Observer for metrics animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setMetricsVisible(true);
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    const metricsSection = document.getElementById('metrics-section');
+    if (metricsSection) {
+      observer.observe(metricsSection);
+    }
+
+    return () => {
+      if (metricsSection) {
+        observer.unobserve(metricsSection);
+      }
+    };
+  }, []);
+
   const steps = [
     {
-      icon: <ClipboardEdit className="w-8 h-8" />,
+      icon: (
+        <div className="relative w-16 h-16 flex items-center justify-center bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-2xl p-3">
+          <GraduationCap className="w-10 h-10 text-purple-400" />
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-sm font-bold">1</div>
+        </div>
+      ),
       title: "Set Up Your Profile",
-      description: "Create your profile once with your professional details, experience, and skills. Our AI remembers everything for future use.",
+      description: "Create your professional profile with key skills and experience. Our AI remembers it all.",
       color: "from-purple-500/20 to-blue-500/20"
     },
     {
-      icon: <FileSearch className="w-8 h-8" />,
+      icon: (
+        <div className="relative w-16 h-16 flex items-center justify-center bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-2xl p-3">
+          <Briefcase className="w-10 h-10 text-blue-400" />
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+        </div>
+      ),
       title: "Add Job Description",
-      description: "Paste the job description you're interested in. Our AI analyzes requirements and matches them with your profile.",
+      description: "Paste the job details and let our AI analyze the key requirements for you.",
       color: "from-blue-500/20 to-cyan-500/20"
     },
     {
-      icon: <Sparkles className="w-8 h-8" />,
+      icon: (
+        <div className="relative w-16 h-16 flex items-center justify-center bg-gradient-to-br from-cyan-500/30 to-teal-500/30 rounded-2xl p-3">
+          <div className="relative">
+            <FileText className="w-10 h-10 text-cyan-400" />
+            <Sparkles className="w-5 h-5 text-yellow-400 absolute -top-1 -right-1" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+        </div>
+      ),
       title: "Generate ATS-Friendly Resume",
-      description: "Click generate and watch as AI creates a perfectly tailored, ATS-optimized resume that highlights your relevant skills.",
+      description: "Get an optimized resume that perfectly matches the job requirements instantly.",
       color: "from-cyan-500/20 to-teal-500/20"
     },
     {
-      icon: <FileDown className="w-8 h-8" />,
-      title: "Download & Share",
-      description: "Download your resume in PDF format or get a unique shareable link to send to recruiters.",
+      icon: (
+        <div className="relative w-16 h-16 flex items-center justify-center bg-gradient-to-br from-teal-500/30 to-green-500/30 rounded-2xl p-3">
+          <div className="relative">
+            <Send className="w-10 h-10 text-teal-400" />
+            <CheckCircle2 className="w-5 h-5 text-green-400 absolute -top-1 -right-1" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center text-sm font-bold">4</div>
+        </div>
+      ),
+      title: "Apply with Confidence",
+      description: "Download your polished resume or share it directly with recruiters online.",
       color: "from-teal-500/20 to-green-500/20"
     }
   ];
@@ -163,24 +220,53 @@ function Home() {
 
   const faqs = [
     {
-      question: "How does the AI resume generator work?",
-      answer: "Our AI analyzes your profile and the job description to create a tailored, ATS-friendly resume. It highlights relevant skills and experiences, ensuring your resume matches the job requirements perfectly."
+      question: "How does the AI analyze job descriptions?",
+      answer: "Our AI uses advanced natural language processing to analyze job descriptions, identifying key requirements, skills, and qualifications. It then matches these with your profile to create a perfectly tailored resume that highlights your most relevant experiences and skills for that specific role."
     },
     {
-      question: "Are the resumes ATS (Applicant Tracking System) friendly?",
-      answer: "Yes! All generated resumes are optimized for ATS systems, using industry-standard formatting and keywords from the job description to ensure your resume gets past automated screening."
+      question: "How does the credit system work?",
+      answer: "New users get 30 free credits upon signup. Each resume or cover letter generation costs 10 credits. You can earn 20 bonus credits by referring friends. Pro subscribers receive 1000 credits monthly, while Enterprise users get unlimited credits. Unused credits from the free tier don't expire."
+    },
+    {
+      question: "What makes the resumes ATS-friendly?",
+      answer: "Our AI optimizes resumes for Applicant Tracking Systems (ATS) by: 1) Using industry-standard formatting and layouts, 2) Incorporating relevant keywords from the job description, 3) Maintaining proper heading hierarchy, and 4) Ensuring clean, parseable text that ATS systems can easily read. This significantly improves your chances of getting past automated screenings."
     },
     {
       question: "Can I edit the generated content?",
-      answer: "Absolutely! While our AI creates great initial content, you have full control to edit, customize, and perfect your resume and cover letter to match your preferences."
+      answer: "Yes! While our AI creates highly optimized content, you have full control to edit any part of your resume or cover letter. You can modify the content, rearrange sections, and fine-tune the wording to match your preferences while maintaining ATS optimization."
     },
     {
       question: "How secure is my data?",
-      answer: "We use enterprise-grade security with Firebase Authentication and secure cloud storage. Your data is encrypted and only accessible to you."
+      answer: "We prioritize your data security with: 1) Enterprise-grade encryption for all stored data, 2) Secure Firebase Authentication for user accounts, 3) Regular security audits and updates, and 4) Strict data access controls. Your information is only accessible to you and is never shared without your explicit permission."
+    }
+  ];
+
+  const testimonials = [
+    {
+      author: {
+        name: "Emma Thompson",
+        handle: "@emmaai",
+        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face"
+      },
+      text: "Using this AI platform has transformed how I approach job applications. The tailored resumes have significantly improved my interview success rate.",
+      href: "https://twitter.com/emmaai"
     },
     {
-      question: "How does resume sharing work?",
-      answer: "Each resume gets a unique, secure link that you can share with recruiters. The shared version displays your resume professionally in both web and PDF formats."
+      author: {
+        name: "David Park",
+        handle: "@davidtech",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+      },
+      text: "The ATS optimization is incredible. I've received more callbacks since using this tool, and the cover letter generator saves me hours of work.",
+      href: "https://twitter.com/davidtech"
+    },
+    {
+      author: {
+        name: "Sofia Rodriguez",
+        handle: "@sofiaml",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face"
+      },
+      text: "Finally, a resume builder that actually understands my experience and presents it in the best light. The AI suggestions are spot-on!"
     }
   ];
 
@@ -238,29 +324,255 @@ function Home() {
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
             How It <span className="text-neon-blue">Works</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {steps.map((step, index) => (
-              <div key={index} className="relative">
+              <div key={index} className="relative group h-full">
                 {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[calc(100%-1rem)] w-full h-px bg-gradient-to-r from-neon-blue to-transparent z-10" />
+                  <div className="hidden lg:block absolute top-[45%] left-[calc(100%-1rem)] w-full h-[2px]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/50 to-transparent group-hover:from-neon-blue/80 transition-all duration-300" />
+                    <div className="absolute -right-2 -top-1 w-4 h-4">
+                      <div className="w-full h-full border-t-2 border-r-2 border-neon-blue/50 group-hover:border-neon-blue/80 transition-all duration-300 rotate-45" />
+                    </div>
+                  </div>
                 )}
-                <div className={`glass p-6 rounded-lg border border-white/10 h-full
-                  bg-gradient-to-br ${step.color} backdrop-blur-sm
-                  hover:border-neon-blue/50 transition-all duration-300
-                  group hover:-translate-y-1`}
+                <div className={`relative overflow-hidden p-6 rounded-xl border border-white/10
+                  bg-gradient-to-br ${step.color} backdrop-blur-xl h-full
+                  hover:border-neon-blue/50 transition-all duration-500 group-hover:scale-[1.02]
+                  shadow-[0_0_15px_rgba(0,0,0,0.2)] group-hover:shadow-[0_0_25px_rgba(0,255,255,0.1)]
+                  flex flex-col`}
                 >
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center mb-4
-                      border border-white/10 group-hover:border-neon-blue/50 transition-colors
-                      text-neon-blue">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-neon-blue/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-neon-blue/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <div className="flex flex-col items-center text-center h-full">
+                    <div className="mb-6 transform group-hover:scale-110 transition-transform duration-500">
                       {step.icon}
                     </div>
-                    <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                    <p className="text-gray-400">{step.description}</p>
+                    <h3 className="text-xl font-semibold mb-4 text-white/90 group-hover:text-white transition-colors duration-300">
+                      {step.title}
+                    </h3>
+                    <p className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300 leading-relaxed flex-grow">
+                      {step.description}
+                    </p>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Why AI Resume Builder Section */}
+      <div className="py-20 px-4 relative bg-gradient-to-b from-zinc-900 to-black">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-900/50 to-black" />
+        <div className="relative z-10 max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+            Why <span className="text-neon-blue">AI Resume Builder</span>?
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            {/* Traditional Method */}
+            <div className="relative p-8 rounded-xl border border-red-500/20 bg-gradient-to-br from-red-500/5 to-transparent">
+              <div className="absolute -top-5 left-8 bg-black px-4 py-2 rounded-full border border-red-500/20">
+                <div className="flex items-center gap-2 text-red-400">
+                  <X className="w-5 h-5" />
+                  <span className="font-semibold">Traditional Method</span>
+                </div>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Time Consuming</h3>
+                    <p className="text-gray-400">Hours spent manually editing resumes for each job application</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">One Resume Fits All</h3>
+                    <p className="text-gray-400">Using the same resume for different jobs reduces your chances</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                    <Target className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Missing Key Requirements</h3>
+                    <p className="text-gray-400">Often misses job-specific keywords and requirements</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Method */}
+            <div className="relative p-8 rounded-xl border border-neon-blue/20 bg-gradient-to-br from-neon-blue/5 to-transparent">
+              <div className="absolute -top-5 left-8 bg-black px-4 py-2 rounded-full border border-neon-blue/20">
+                <div className="flex items-center gap-2 text-neon-blue">
+                  <Check className="w-5 h-5" />
+                  <span className="font-semibold">AI Resume Builder</span>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-neon-blue/10 flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-6 h-6 text-neon-blue" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Instant Generation</h3>
+                    <p className="text-gray-400">Create tailored resumes in seconds, not hours</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-neon-blue/10 flex items-center justify-center flex-shrink-0">
+                    <Target className="w-6 h-6 text-neon-blue" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">Perfect Job Match</h3>
+                    <p className="text-gray-400">AI analyzes and matches your profile to job requirements</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-neon-blue/10 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-6 h-6 text-neon-blue" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-lg">ATS Optimization</h3>
+                    <p className="text-gray-400">Automatically optimized for ATS with relevant keywords</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-8 border-t border-neon-blue/10">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-neon-blue/20 rounded-full animate-ping"></div>
+                    <div className="absolute inset-2 bg-gradient-to-br from-neon-blue/30 to-transparent rounded-full"></div>
+                    <FileText className="w-8 h-8 text-neon-blue relative" />
+                  </div>
+                  <ArrowRight className="w-6 h-6 text-neon-blue" />
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-neon-blue/20 rounded-full"></div>
+                    <div className="absolute inset-2 bg-gradient-to-br from-neon-blue/30 to-transparent rounded-full"></div>
+                    <Briefcase className="w-8 h-8 text-neon-blue relative" />
+                  </div>
+                  <ArrowRight className="w-6 h-6 text-neon-blue" />
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-neon-blue/20 rounded-full animate-pulse"></div>
+                    <div className="absolute inset-2 bg-gradient-to-br from-neon-blue/30 to-transparent rounded-full"></div>
+                    <Check className="w-8 h-8 text-neon-blue relative" />
+                  </div>
+                </div>
+                <p className="text-center text-gray-400 mt-4">One click to create the perfect resume for any job</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Success Metrics Section */}
+      <div id="metrics-section" className="py-20 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-900/50 to-black" />
+        <div className="relative z-10 max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+            Our Users' <span className="text-neon-blue">Success</span> Story
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Interview Rate */}
+            <div className={`transform transition-all duration-1000 ${metricsVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="relative p-6 rounded-xl border border-neon-blue/20 bg-gradient-to-br from-neon-blue/5 to-transparent group hover:border-neon-blue/40 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-blue/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative">
+                  <div className="w-16 h-16 mb-4 relative">
+                    <div className="absolute inset-0 bg-neon-blue/20 rounded-full animate-ping" style={{ animationDuration: '3s' }} />
+                    <div className="relative w-full h-full rounded-full bg-gradient-to-br from-neon-blue/30 to-transparent flex items-center justify-center">
+                      <TrendingUp className="w-8 h-8 text-neon-blue" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-neon-blue">85</span>
+                    <span className="text-xl text-neon-blue">%</span>
+                  </div>
+                  <p className="mt-2 text-lg font-medium text-white">Interview Rate</p>
+                  <p className="text-gray-400 text-sm mt-1">Higher callback rate compared to traditional resumes</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Time Saved */}
+            <div className={`transform transition-all duration-1000 delay-200 ${metricsVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="relative p-6 rounded-xl border border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent group hover:border-green-500/40 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative">
+                  <div className="w-16 h-16 mb-4 relative">
+                    <div className="absolute inset-0 bg-green-500/20 rounded-full animate-pulse" style={{ animationDuration: '2s' }} />
+                    <div className="relative w-full h-full rounded-full bg-gradient-to-br from-green-500/30 to-transparent flex items-center justify-center">
+                      <Timer className="w-8 h-8 text-green-400" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-green-400">95</span>
+                    <span className="text-xl text-green-400">%</span>
+                  </div>
+                  <p className="mt-2 text-lg font-medium text-white">Time Saved</p>
+                  <p className="text-gray-400 text-sm mt-1">Less time spent on resume creation and editing</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Success Rate */}
+            <div className={`transform transition-all duration-1000 delay-300 ${metricsVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="relative p-6 rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent group hover:border-purple-500/40 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative">
+                  <div className="w-16 h-16 mb-4 relative">
+                    <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-ping" style={{ animationDuration: '4s' }} />
+                    <div className="relative w-full h-full rounded-full bg-gradient-to-br from-purple-500/30 to-transparent flex items-center justify-center">
+                      <Award className="w-8 h-8 text-purple-400" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-purple-400">3</span>
+                    <span className="text-xl text-purple-400">x</span>
+                  </div>
+                  <p className="mt-2 text-lg font-medium text-white">Success Rate</p>
+                  <p className="text-gray-400 text-sm mt-1">Higher job offer success rate with AI optimization</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Users */}
+            <div className={`transform transition-all duration-1000 delay-400 ${metricsVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="relative p-6 rounded-xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent group hover:border-cyan-500/40 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative">
+                  <div className="w-16 h-16 mb-4 relative">
+                    <div className="absolute inset-0 bg-cyan-500/20 rounded-full animate-pulse" style={{ animationDuration: '3s' }} />
+                    <div className="relative w-full h-full rounded-full bg-gradient-to-br from-cyan-500/30 to-transparent flex items-center justify-center">
+                      <Users className="w-8 h-8 text-cyan-400" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-bold text-cyan-400">10</span>
+                    <span className="text-xl text-cyan-400">K+</span>
+                  </div>
+                  <p className="mt-2 text-lg font-medium text-white">Active Users</p>
+                  <p className="text-gray-400 text-sm mt-1">Trusted by thousands of job seekers worldwide</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -286,55 +598,12 @@ function Home() {
         </div>
       </div>
 
-      {/* Live Demo Preview */}
-      <div className="py-20 px-4 bg-gradient-to-b from-black to-zinc-900">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12">
-            See How It <span className="text-neon-blue">Works</span>
-          </h2>
-          <div className="glass p-8 rounded-lg border border-white/10">
-            <img 
-              src="https://images.unsplash.com/photo-1607968565043-36af90dde238?auto=format&fit=crop&q=80&w=1200" 
-              alt="Resume Builder Demo"
-              className="rounded-lg shadow-2xl w-full"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Testimonials */}
       <div id="testimonials">
         <TestimonialsSection
           title="Trusted by job seekers worldwide"
           description="Join thousands of successful applicants who landed their dream jobs using our AI Resume Builder"
-          testimonials={[
-            {
-              author: {
-                name: "Emma Thompson",
-                handle: "@emmaai",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face"
-              },
-              text: "Using this AI platform has transformed how I approach job applications. The tailored resumes have significantly improved my interview success rate.",
-              href: "https://twitter.com/emmaai"
-            },
-            {
-              author: {
-                name: "David Park",
-                handle: "@davidtech",
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
-              },
-              text: "The ATS optimization is incredible. I've received more callbacks since using this tool, and the cover letter generator saves me hours of work.",
-              href: "https://twitter.com/davidtech"
-            },
-            {
-              author: {
-                name: "Sofia Rodriguez",
-                handle: "@sofiaml",
-                avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face"
-              },
-              text: "Finally, a resume builder that actually understands my experience and presents it in the best light. The AI suggestions are spot-on!"
-            }
-          ]}
+          testimonials={testimonials}
         />
       </div>
 
@@ -383,39 +652,63 @@ All plans include our core AI-powered resume and cover letter generation."
       </div>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-white/10">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">AI Resume Builder</h3>
-              <p className="text-gray-400">Create professional resumes and cover letters with AI technology.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/dashboard" className="hover:text-neon-blue">Dashboard</Link></li>
-                <li><Link to="/profile" className="hover:text-neon-blue">Profile</Link></li>
-                <li><a href="#features" className="hover:text-neon-blue">Features</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-neon-blue">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-neon-blue">Terms of Service</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Connect</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-neon-blue">Contact Us</a></li>
-                <li><a href="#" className="hover:text-neon-blue">Support</a></li>
-              </ul>
+      <footer className="bg-gradient-to-b from-black to-zinc-900 py-12 px-4 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-neon-blue/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-white">AI Resume Builder</h3>
+            <p className="text-gray-400 mb-4">Create ATS-optimized resumes with the power of AI</p>
+            <div className="flex items-center text-gray-400 hover:text-neon-blue transition-colors group">
+              <Mail className="w-4 h-4 mr-2 group-hover:text-neon-blue transition-colors" />
+              <span className="select-all">support@airesumebuilder.com</span>
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-white/10 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} AI Resume Builder. All rights reserved.</p>
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-white">Quick Links</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/" className="text-gray-400 hover:text-neon-blue transition-colors duration-200 flex items-center">
+                  <RightArrow className="w-4 h-4 mr-2" />
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard" className="text-gray-400 hover:text-neon-blue transition-colors duration-200 flex items-center">
+                  <RightArrow className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link to="/pricing" className="text-gray-400 hover:text-neon-blue transition-colors duration-200 flex items-center">
+                  <RightArrow className="w-4 h-4 mr-2" />
+                  Pricing
+                </Link>
+              </li>
+            </ul>
           </div>
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-white">Legal</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/privacy" className="text-gray-400 hover:text-neon-blue transition-colors duration-200 flex items-center">
+                  <RightArrow className="w-4 h-4 mr-2" />
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="text-gray-400 hover:text-neon-blue transition-colors duration-200 flex items-center">
+                  <RightArrow className="w-4 h-4 mr-2" />
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto mt-8 pt-8 border-t border-white/10 relative">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-blue/20 to-transparent" />
+          <p className="text-center text-gray-400">
+            &copy; {new Date().getFullYear()} AI Resume Builder. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>
