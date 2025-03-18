@@ -70,7 +70,7 @@ export default function Login() {
     {
       icon: <Bot className="w-6 h-6" />,
       text: "AI-Powered Resume Builder",
-      subtext: "100% ATS Friendly",
+      subtext: "ATS Friendly",
       gradient: "from-blue-500/20 to-purple-500/20"
     },
     {
@@ -97,18 +97,8 @@ export default function Login() {
 
       {/* Add top margin to account for navbar */}
       <div className="glass w-full max-w-5xl grid md:grid-cols-2 gap-8 p-8 relative mt-20">
-        {/* Left Section - Features */}
-        <div className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-neon-blue to-[#0099ff] flex items-center justify-center">
-              <BrainCircuit className="w-7 h-7 text-black" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">AI Resume Builder</h1>
-              <p className="text-gray-400">Powered by Advanced AI</p>
-            </div>
-          </div>
-
+        {/* Left Section - Features (Hidden on mobile) */}
+        <div className="hidden md:block space-y-8">
           <div className="space-y-4">
             {features.map((feature, index) => (
               <div 

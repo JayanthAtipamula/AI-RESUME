@@ -4,7 +4,6 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../lib/store';
 import { Save, Plus, Trash2, Wand2, ArrowLeft } from 'lucide-react';
-import ReferralSystem from '../components/ReferralSystem';
 
 interface WorkExperience {
   company: string;
@@ -96,6 +95,7 @@ function Profile() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const [profile, setProfile] = React.useState<Profile>(initialProfile);
+  const [skillsRawInput, setSkillsRawInput] = React.useState<Record<number, string>>({});
 
   React.useEffect(() => {
     const fetchProfile = async () => {
@@ -278,10 +278,17 @@ function Profile() {
   };
 
   const updateSkillsInCategory = (categoryIndex: number, value: string) => {
+    setSkillsRawInput({
+      ...skillsRawInput,
+      [categoryIndex]: value
+    });
+    
     const newSkills = [...profile.skills];
-    // Split by comma and trim each skill
-    const skillsArray = value.split(',').map(skill => skill.trim()).filter(skill => skill !== '');
-    newSkills[categoryIndex] = { ...newSkills[categoryIndex], skills: skillsArray };
+    newSkills[categoryIndex] = { 
+      ...newSkills[categoryIndex], 
+      skills: value.split(',').map(skill => skill.trim())
+    };
+    
     setProfile({ ...profile, skills: newSkills });
   };
 
@@ -389,11 +396,10 @@ function Profile() {
             <h1 className="text-2xl font-bold text-white">Profile</h1>
           </div>
           <div className="flex gap-2">
-            <button onClick={populateFakeData} className="glass-button flex items-center gap-2">
-              <Wand2 className="w-5 h-5" />
-              <span>Sample Data</span>
-            </button>
-            <button onClick={handleSave} className="glass-button flex items-center gap-2">
+            <button 
+              onClick={handleSave} 
+              className="glass-button flex items-center gap-2 hover:shadow-[0_0_15px_rgba(0,242,254,0.6)] transition-all duration-300"
+            >
               <Save className="w-5 h-5" />
               <span>Save</span>
             </button>
@@ -626,7 +632,9 @@ function Profile() {
                   <label className="block text-sm font-medium text-gray-300 mb-1">Skills (comma-separated)</label>
                   <input
                     type="text"
-                    value={Array.isArray(category.skills) ? category.skills.join(', ') : ''}
+                    value={skillsRawInput[categoryIndex] !== undefined 
+                      ? skillsRawInput[categoryIndex] 
+                      : Array.isArray(category.skills) ? category.skills.join(', ') : ''}
                     onChange={(e) => updateSkillsInCategory(categoryIndex, e.target.value)}
                     className="glass-input w-full"
                     placeholder="React, TypeScript, Node.js, Python, AWS, Docker, etc."
@@ -843,9 +851,15 @@ function Profile() {
           </div>
         </div>
 
-        {/* Add the referral system */}
-        <div className="mt-8">
-          <ReferralSystem />
+        {/* Bottom Save Button */}
+        <div className="flex justify-center">
+          <button 
+            onClick={handleSave} 
+            className="glass-button py-3 px-10 flex items-center gap-2 text-lg hover:shadow-[0_0_15px_rgba(0,242,254,0.8)] transition-all duration-300 border border-neon-blue"
+          >
+            <Save className="w-6 h-6" />
+            <span>Save Profile</span>
+          </button>
         </div>
       </div>
     </div>

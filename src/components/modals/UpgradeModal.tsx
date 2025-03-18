@@ -11,34 +11,34 @@ interface UpgradeModalProps {
 
 const PAYMENT_LINKS = {
   cashfree: {
-    monthly: 'https://payments.cashfree.com/forms?code=1m-pro&redirect_url=https://ai-resume.vercel.app/payment/success',
-    annual: 'https://payments.cashfree.com/forms?code=1Y-pro&redirect_url=https://ai-resume.vercel.app/payment/success'
+    monthly: 'https://payments.cashfree.com/forms?code=1m-pro',
+    annual: 'https://payments.cashfree.com/forms?code=1y-pro'
   },
   stripe: {
-    monthly: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H?success_url=https://ai-resume.vercel.app/payment/success',
-    annual: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H1?success_url=https://ai-resume.vercel.app/payment/success'
+    monthly: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H',
+    annual: 'https://buy.polar.sh/polar_cl_NWpOb8N8riuA969yTFNgVBrNBGqOSrBmYtyrv04dksK'
   }
 };
 
-const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly }) => {
+const stripeLinks = {
+  stripe: {
+    monthly: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H',
+    annual: 'https://buy.polar.sh/polar_cl_NWpOb8N8riuA969yTFNgVBrNBGqOSrBmYtyrv04dksK'
+  }
+};
+
+const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly = true }) => {
   const user = useAuthStore((state) => state.user);
-  const [paymentMethod, setPaymentMethod] = useState<'cashfree' | 'stripe'>('cashfree');
+  const [selectedPlan, setSelectedPlan] = useState(isMonthly ? 'monthly' : 'annual');
 
   if (!isOpen) return null;
 
-  const handlePaymentMethodChange = (method: 'cashfree' | 'stripe') => {
-    setPaymentMethod(method);
-  };
-
-  const handleCompletePayment = () => {
-    if (!user) {
-      toast.error('Please log in to continue');
-      return;
-    }
-
-    const billingPeriod = isMonthly ? 'monthly' : 'annual';
-    const paymentLink = PAYMENT_LINKS[paymentMethod][billingPeriod];
-    window.location.href = paymentLink;
+  const handleUpgrade = () => {
+    const link = selectedPlan === 'cashfree'
+      ? (isMonthly ? PAYMENT_LINKS.cashfree.monthly : PAYMENT_LINKS.cashfree.annual)
+      : (isMonthly ? PAYMENT_LINKS.stripe.monthly : PAYMENT_LINKS.stripe.annual);
+      
+    window.location.href = link;
   };
 
   return (
@@ -60,8 +60,8 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly 
                 type="radio"
                 name="paymentMethod"
                 value="cashfree"
-                checked={paymentMethod === 'cashfree'}
-                onChange={() => handlePaymentMethodChange('cashfree')}
+                checked={selectedPlan === 'cashfree'}
+                onChange={() => setSelectedPlan('cashfree')}
                 className="mr-3 h-5 w-5 accent-neon-blue"
               />
               <div>
@@ -75,8 +75,8 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly 
                 type="radio"
                 name="paymentMethod"
                 value="stripe"
-                checked={paymentMethod === 'stripe'}
-                onChange={() => handlePaymentMethodChange('stripe')}
+                checked={selectedPlan === 'stripe'}
+                onChange={() => setSelectedPlan('stripe')}
                 className="mr-3 h-5 w-5 accent-neon-blue"
               />
               <div>
@@ -89,10 +89,10 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly 
 
         <div className="flex justify-end">
           <button
-            onClick={handleCompletePayment}
-            className="glass-button py-2 px-6"
+            onClick={handleUpgrade}
+            className="glass-button px-4 py-2"
           >
-            Complete Payment
+            Upgrade Now
           </button>
         </div>
       </div>

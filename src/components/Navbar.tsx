@@ -63,17 +63,15 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-neon-blue to-[#0099ff] flex items-center justify-center">
-                  <BrainCircuit className="w-6 h-6 text-black" />
-                </div>
-                <div>
-                  <span className="text-white font-bold text-lg">AI Resume Builder</span>
-                  {isLoginPage && <div className="text-xs text-gray-400">Powered by Advanced AI</div>}
-                </div>
-              </div>
-            </Link>
+            <div className="flex items-center">
+              <Link to="/" className="flex items-center">
+                <img 
+                  src="\assests\RESUMEDOLOGOPNG.png" 
+                  alt="Resume.do Logo" 
+                  className="h-16 w-auto drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]"  // Increased height to h-16 (64px) and added drop shadow
+                />
+              </Link>
+            </div>
             
             {/* Mobile Credits Display */}
             {user && !isLoginPage && (

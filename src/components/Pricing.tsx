@@ -6,6 +6,8 @@ import { cn } from '../lib/utils';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import confetti from 'canvas-confetti';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../lib/store';
 
 const plans = [
   {
@@ -66,10 +68,17 @@ const plans = [
   }
 ];
 
-export default function Pricing() {
+interface PricingProps {
+  showTitle?: boolean;
+  onSelectPlan?: (plan: string) => void;
+}
+
+export default function Pricing({ showTitle = true, onSelectPlan }: PricingProps) {
   const [isMonthly, setIsMonthly] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const switchRef = useRef<HTMLButtonElement>(null);
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   const handleToggle = (checked: boolean) => {
     setIsMonthly(!checked);
@@ -95,17 +104,31 @@ export default function Pricing() {
     }
   };
 
+  const handlePlanSelect = (plan: string) => {
+    if (onSelectPlan) {
+      onSelectPlan(plan);
+    } else if (!user) {
+      navigate('/login', { state: { from: '/pricing', plan } });
+    } else {
+      // Handle upgrade logic
+      // This could open your upgrade modal or redirect to payment
+      window.location.href = `/payment?plan=${plan}`;
+    }
+  };
+
   return (
     <div className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center space-y-4 mb-12">
-          <h2 className="text-4xl font-bold tracking-tight">
-            Simple, Transparent <span className="text-neon-blue">Pricing</span>
-          </h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Choose the plan that works for you. All plans include access to our AI-powered resume builder and ATS optimization.
-          </p>
-        </div>
+        {showTitle && (
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="text-4xl font-bold tracking-tight">
+              Simple, Transparent <span className="text-neon-blue">Pricing</span>
+            </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              Choose the plan that works for you. All plans include access to our AI-powered resume builder and ATS optimization.
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-center mb-10">
           <label className="relative inline-flex items-center cursor-pointer">
@@ -202,6 +225,7 @@ export default function Pricing() {
                       "glass-button w-full",
                       plan.isPopular && "bg-neon-blue text-black hover:bg-neon-blue/90"
                     )}
+                    onClick={() => handlePlanSelect(plan.name)}
                   >
                     {plan.buttonText}
                   </a>

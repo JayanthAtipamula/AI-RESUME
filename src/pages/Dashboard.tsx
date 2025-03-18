@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { db, addNewResume } from '../lib/firebase';
 import { useAuthStore } from '../lib/store';
@@ -32,7 +32,7 @@ export default function Dashboard() {
     updateCredits: state.updateCredits,
     userData: state.userData
   }));
-  const [activeTab, setActiveTab] = React.useState<'resume' | 'cover-letter' | 'My Plan'>('resume');
+  const [activeTab, setActiveTab] = React.useState<'resume' | 'cover-letter' | 'my-plan'>('resume');
   const [profile, setProfile] = React.useState<any>(null);
   const [jobDescription, setJobDescription] = React.useState('');
   const [generatedContent, setGeneratedContent] = React.useState('');
@@ -59,14 +59,15 @@ export default function Dashboard() {
 
   const [subscriptionData, setSubscriptionData] = React.useState<any>(null);
 
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
   const navigationItems = [
-    { name: 'Dashboard', href: '#', current: true },
-    { name: 'Resumes', href: '#', current: false },
-    { name: 'Cover Letters', href: '#', current: false },
-    { name: 'My Plan', href: '#', current: false },
+    { name: 'Dashboard', href: '/dashboard', current: activeTab === 'resume' },
+    { name: 'My Plan', href: '/dashboard?tab=myplan', current: activeTab === 'my-plan' },
   ];
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const getLoadingSteps = (type: 'resume' | 'cover-letter') => {
     if (type === 'resume') {
@@ -113,21 +114,29 @@ export default function Dashboard() {
     }
   };
 
-  const handleTabChange = (tab: 'resume' | 'cover-letter' | 'My Plan') => {
+  const handleTabChange = (tab: 'resume' | 'cover-letter') => {
     setActiveTab(tab);
     setGeneratedContent('');
     setJobDescription('');
-    setLoadingSteps(getLoadingSteps(tab));
+    // Reset all states when changing tabs
+    setEditingContent(null);
+    setExpandedContent(null);
+    setEditedContent('');
+    // Clear URL parameters when switching tabs
+    window.history.pushState({}, '', '/dashboard');
   };
 
   React.useEffect(() => {
-    // Check if there's a tab parameter in the URL
     const searchParams = new URLSearchParams(location.search);
     const tabParam = searchParams.get('tab');
     
-    // Set the active tab based on the URL parameter
     if (tabParam === 'myplan') {
-      setActiveTab('My Plan');
+      setActiveTab('my-plan');
+    } else {
+      // If no tab parameter or invalid parameter, default to resume
+      if (activeTab === 'my-plan') {
+        setActiveTab('resume');
+      }
     }
     
     const fetchProfile = async () => {
@@ -145,7 +154,7 @@ export default function Dashboard() {
     };
 
     const fetchSubscriptionData = async () => {
-      if (user && (activeTab === 'My Plan' || tabParam === 'myplan')) {
+      if (user && (activeTab === 'my-plan' || tabParam === 'myplan')) {
         try {
           // Set loading state
           setIsLoading(true);
@@ -215,7 +224,7 @@ export default function Dashboard() {
 
     fetchProfile();
     fetchSubscriptionData();
-    if (activeTab !== 'My Plan') {
+    if (activeTab !== 'my-plan') {
       fetchPreviousContent();
     }
   }, [user, activeTab, location.search]);
@@ -227,14 +236,42 @@ export default function Dashboard() {
   };
 
   const handleGenerate = async () => {
-    if (!profile || !jobDescription || !user) return;
+    if (!profile || Object.keys(profile).length === 0) {
+      // Show profile completion modal instead of redirecting
+      setShowProfileModal(true);
+      return;
+    }
+
+    if (!jobDescription || !user) return;
 
     // Check credits before proceeding
     if (!userData || userData.credits < 10) {
+      // Show error toast with custom component that includes the upgrade button
       toast.error(
-        userData?.credits === 0 
-          ? "You have no credits remaining. Please upgrade to continue generating content." 
-          : `You need ${10 - (userData?.credits || 0)} more credits. Please upgrade to continue.`
+        <div className="flex flex-col space-y-2">
+          <div>
+            {userData?.credits === 0 
+              ? "You have no credits remaining. Please upgrade to continue generating content." 
+              : `You need ${10 - (userData?.credits || 0)} more credits. Please upgrade to continue.`
+            }
+          </div>
+          <button
+            className="glass-button px-3 py-1 text-sm mt-2"
+            onClick={() => {
+              // Navigate to home page
+              navigate('/');
+              // Add a small delay to ensure navigation completes before scrolling
+              setTimeout(() => {
+                const pricingSection = document.getElementById('pricing');
+                if (pricingSection) {
+                  pricingSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }, 100);
+            }}
+          >
+            Upgrade Now
+          </button>
+        </div>
       );
       return;
     }
@@ -547,21 +584,20 @@ export default function Dashboard() {
   };
 
   const handleNavigation = (itemName: string) => {
-    // Update the current navigation item
-    const updatedItems = navigationItems.map(item => ({
-      ...item,
-      current: item.name === itemName
-    }));
-    
-    // Set the updated navigation items
-    // setNavigationItems(updatedItems); // Uncomment if you have state for navigation items
-    
-    // Handle the My Plan option
-    if (itemName === 'My Plan') {
-      setActiveTab('My Plan'); // Assuming you have an activeTab state
-    } else {
-      // Handle other navigation options
-      // ... existing code ...
+    switch (itemName) {
+      case 'Dashboard':
+        setActiveTab('resume');
+        setGeneratedContent('');
+        setJobDescription('');
+        setEditingContent(null);
+        setExpandedContent(null);
+        setEditedContent('');
+        window.history.pushState({}, '', '/dashboard');
+        break;
+      case 'My Plan':
+        setActiveTab('my-plan');
+        window.history.pushState({}, '', '/dashboard?tab=myplan');
+        break;
     }
   };
 
@@ -589,292 +625,310 @@ export default function Dashboard() {
     });
   };
 
-  if (!profile) {
+  // Add the profile completion modal component
+  const ProfileCompletionModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+    const navigate = useNavigate();
+
     return (
-      <div className="min-h-screen pt-28 px-4 flex items-start justify-center">
-        <div className="glass p-8 text-center">
-          <h2 className="text-xl text-white mb-4">Complete Your Profile</h2>
-          <Link to="/profile" className="glass-button">
-            Set Up Profile
-          </Link>
+      <div className={`fixed inset-0 flex items-center justify-center z-50 ${isOpen ? '' : 'hidden'}`}>
+        <div className="fixed inset-0 bg-black opacity-50" onClick={onClose}></div>
+        <div className="bg-zinc-900 p-6 rounded-lg shadow-xl relative z-10 max-w-md w-full mx-4">
+          <h2 className="text-2xl font-bold text-white mb-4">Complete Your Profile</h2>
+          <p className="text-gray-400 mb-6">
+            Please complete your profile to generate content. This helps us create better tailored resumes and cover letters for you.
+          </p>
+          <div className="flex justify-end space-x-4">
+            <button
+              className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              className="glass-button px-4 py-2"
+              onClick={() => {
+                navigate('/profile');
+                onClose();
+              }}
+            >
+              Set Up Profile
+            </button>
+          </div>
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8 mt-20">
         <div className="flex flex-col space-y-6">
-      <LoadingModal
-        isOpen={showLoadingModal}
-        type={activeTab === 'My Plan' ? 'resume' : activeTab}
-        steps={loadingSteps}
-        content={modalContent}
-        onClose={handleCloseModal}
-        downloadAsPDF={downloadAsPDF}
-        downloadAsText={downloadAsText}
-        jobDescription={jobDescription}
-        extractRole={extractRole}
-      />
-      
-      <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-        <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
-            </div>
-
-        {activeTab !== 'My Plan' && (
-          <>
-            <GenerateContent
-              type={activeTab === 'My Plan' ? 'resume' : activeTab}
-              jobDescription={jobDescription}
-              setJobDescription={setJobDescription}
-              handleGenerate={handleGenerate}
-              isGenerating={isGenerating}
-              userData={userData}
-            />
-
-            <ResumeDisplay
-              content={generatedContent}
-              jobDescription={jobDescription}
-              type={activeTab === 'My Plan' ? 'resume' : activeTab}
-              downloadAsPDF={downloadAsPDF}
-              downloadAsText={downloadAsText}
-              extractRole={extractRole}
-              formatResumeDisplay={formatResumeDisplay}
-            />
-
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
+          <LoadingModal
+            isOpen={showLoadingModal}
+            type={activeTab === 'my-plan' ? 'resume' : activeTab}
+            steps={loadingSteps}
+            content={modalContent}
+            onClose={handleCloseModal}
+            downloadAsPDF={downloadAsPDF}
+            downloadAsText={downloadAsText}
+            jobDescription={jobDescription}
+            extractRole={extractRole}
+          />
+          
+          <div className="max-w-4xl mx-auto">
+            {/* Only show TabSelector when not on My Plan page */}
+            {activeTab !== 'my-plan' && (
+              <div className="flex justify-between items-center mb-6">
+                <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
               </div>
-            ) : previousContent.length > 0 ? (
-              <PreviousResumes
-                resumes={previousContent}
-                editingResume={editingContent}
-                expandedResume={expandedContent}
-                editedContent={editedContent}
-                isDeleting={isDeleting}
-                onToggleExpand={toggleExpand}
-                onEdit={handleEdit}
-                onSave={handleSaveEdit}
-                onCancel={handleCancelEdit}
-                onDelete={(id) => handleDelete(id, activeTab === 'My Plan' ? 'resume' : activeTab)}
-                onEditContentChange={setEditedContent}
-                downloadAsPDF={downloadAsPDF}
-                downloadAsText={downloadAsText}
-                formatResumeDisplay={formatResumeDisplay}
-              />
-            ) : null}
-          </>
-        )}
+            )}
 
-        {activeTab === 'My Plan' && (
-          <div className="mt-6 bg-black shadow sm:rounded-lg p-6 border border-gray-800">
-            <h2 className="text-2xl font-bold mb-4 text-white">My Current Plan</h2>
-            
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
-              </div>
-            ) : subscriptionData ? (
-              <div className="space-y-6">
-                <div className="bg-zinc-900 rounded-lg p-4 border border-gray-800">
-                  <h3 className="text-lg font-semibold text-neon-blue mb-3">subscription</h3>
-                  
-                  <div className="space-y-3 pl-4">
-                    {subscriptionData.credits !== undefined && (
-                      <div className="flex items-start">
-                        <div className="font-medium text-gray-400 w-40">credits:</div>
-                        <div className="font-semibold text-white">
-                          {subscriptionData.credits}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {subscriptionData.endDate && (
-                      <div className="flex items-start">
-                        <div className="font-medium text-gray-400 w-40">endDate:</div>
-                        <div className="font-semibold text-white">
-                          {subscriptionData.endDate instanceof Date 
-                            ? subscriptionData.endDate.toLocaleString()
-                            : new Date(subscriptionData.endDate.seconds * 1000).toLocaleString()}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {subscriptionData.lastCreditUpdate && (
-                      <div className="flex items-start">
-                        <div className="font-medium text-gray-400 w-40">lastCreditUpdate:</div>
-                        <div className="font-semibold text-white">
-                          {subscriptionData.lastCreditUpdate instanceof Date 
-                            ? subscriptionData.lastCreditUpdate.toLocaleString()
-                            : new Date(subscriptionData.lastCreditUpdate.seconds * 1000).toLocaleString()}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {subscriptionData.plan && (
-                      <div className="flex items-start">
-                        <div className="font-medium text-gray-400 w-40">plan:</div>
-                        <div className="font-semibold text-white">
-                          "{subscriptionData.plan}"
-                        </div>
-                      </div>
-                    )}
-                    
-                    {subscriptionData.startDate && (
-                      <div className="flex items-start">
-                        <div className="font-medium text-gray-400 w-40">startDate:</div>
-                        <div className="font-semibold text-white">
-                          {subscriptionData.startDate instanceof Date 
-                            ? subscriptionData.startDate.toLocaleString()
-                            : new Date(subscriptionData.startDate.seconds * 1000).toLocaleString()}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {subscriptionData.status && (
-                      <div className="flex items-start">
-                        <div className="font-medium text-gray-400 w-40">status:</div>
-                        <div className="font-semibold text-white">
-                          "{subscriptionData.status}"
-                        </div>
-                      </div>
-                    )}
+            {activeTab !== 'my-plan' && (
+              <>
+                <GenerateContent
+                  type={activeTab}
+                  jobDescription={jobDescription}
+                  setJobDescription={setJobDescription}
+                  handleGenerate={handleGenerate}
+                  isGenerating={isGenerating}
+                  userData={userData}
+                />
+
+                <ResumeDisplay
+                  content={generatedContent}
+                  jobDescription={jobDescription}
+                  type={activeTab}
+                  downloadAsPDF={downloadAsPDF}
+                  downloadAsText={downloadAsText}
+                  extractRole={extractRole}
+                  formatResumeDisplay={formatResumeDisplay}
+                />
+
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
                   </div>
-                </div>
+                ) : previousContent.length > 0 ? (
+                  <PreviousResumes
+                    resumes={previousContent}
+                    editingResume={editingContent}
+                    expandedResume={expandedContent}
+                    editedContent={editedContent}
+                    isDeleting={isDeleting}
+                    onToggleExpand={toggleExpand}
+                    onEdit={handleEdit}
+                    onSave={handleSaveEdit}
+                    onCancel={handleCancelEdit}
+                    onDelete={(id) => handleDelete(id, activeTab)}
+                    onEditContentChange={setEditedContent}
+                    downloadAsPDF={downloadAsPDF}
+                    downloadAsText={downloadAsText}
+                    formatResumeDisplay={formatResumeDisplay}
+                  />
+                ) : null}
+              </>
+            )}
+
+            {activeTab === 'my-plan' && (
+              <div className="mt-6 bg-black shadow sm:rounded-lg p-6 border border-gray-800">
+                <h2 className="text-2xl font-bold mb-4 text-white">My Current Plan</h2>
                 
-                {/* Subscription Progress Bar */}
-                {subscriptionData.startDate && subscriptionData.endDate && (
-                  <div className="bg-zinc-900 rounded-lg p-4 border border-gray-800">
-                    <h3 className="text-lg font-semibold text-neon-blue mb-3">Subscription Period</h3>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm text-gray-400">
-                        <span>Start: {new Date(
-                          subscriptionData.startDate instanceof Date 
-                            ? subscriptionData.startDate 
-                            : subscriptionData.startDate.seconds * 1000
-                        ).toLocaleDateString()}</span>
-                        <span>End: {new Date(
-                          subscriptionData.endDate instanceof Date 
-                            ? subscriptionData.endDate 
-                            : subscriptionData.endDate.seconds * 1000
-                        ).toLocaleDateString()}</span>
-                      </div>
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
+                  </div>
+                ) : subscriptionData ? (
+                  <div className="space-y-6">
+                    <div className="bg-zinc-900 rounded-lg p-4 border border-gray-800">
+                      <h3 className="text-lg font-semibold text-neon-blue mb-3">subscription</h3>
                       
-                      <div className="w-full bg-gray-800 rounded-full h-2.5">
-                        {(() => {
-                          const startDate = new Date(
-                            subscriptionData.startDate instanceof Date 
-                              ? subscriptionData.startDate 
-                              : subscriptionData.startDate.seconds * 1000
-                          );
-                          const endDate = new Date(
-                            subscriptionData.endDate instanceof Date 
-                              ? subscriptionData.endDate 
-                              : subscriptionData.endDate.seconds * 1000
-                          );
-                          const now = new Date();
-                          const total = endDate.getTime() - startDate.getTime();
-                          const elapsed = now.getTime() - startDate.getTime();
-                          const progress = Math.min(100, Math.max(0, Math.floor((elapsed / total) * 100)));
-                          
-                          return (
-                            <div 
-                              className="bg-neon-blue h-2.5 rounded-full" 
-                              style={{ width: `${progress}%` }}
-                            ></div>
-                          );
-                        })()}
-                      </div>
-                      
-                      <div className="text-center text-sm text-gray-400 mt-1">
-                        {(() => {
-                          const startDate = new Date(
-                            subscriptionData.startDate instanceof Date 
-                              ? subscriptionData.startDate 
-                              : subscriptionData.startDate.seconds * 1000
-                          );
-                          const endDate = new Date(
-                            subscriptionData.endDate instanceof Date 
-                              ? subscriptionData.endDate 
-                              : subscriptionData.endDate.seconds * 1000
-                          );
-                          const now = new Date();
-                          const total = endDate.getTime() - startDate.getTime();
-                          const elapsed = now.getTime() - startDate.getTime();
-                          const progress = Math.min(100, Math.max(0, Math.floor((elapsed / total) * 100)));
-                          const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                          
-                          return (
-                            <>
-                              <span className="font-medium">{progress}% used</span>
-                              <span className="mx-2">•</span>
-                              <span>{daysRemaining} days remaining</span>
-                            </>
-                          );
-                        })()}
+                      <div className="space-y-3 pl-4">
+                        {subscriptionData.endDate && (
+                          <div className="flex items-start">
+                            <div className="font-medium text-gray-400 w-40">endDate:</div>
+                            <div className="font-semibold text-white">
+                              {subscriptionData.endDate instanceof Date 
+                                ? subscriptionData.endDate.toLocaleString()
+                                : new Date(subscriptionData.endDate.seconds * 1000).toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {subscriptionData.lastCreditUpdate && (
+                          <div className="flex items-start">
+                            <div className="font-medium text-gray-400 w-40">lastCreditUpdate:</div>
+                            <div className="font-semibold text-white">
+                              {subscriptionData.lastCreditUpdate instanceof Date 
+                                ? subscriptionData.lastCreditUpdate.toLocaleString()
+                                : new Date(subscriptionData.lastCreditUpdate.seconds * 1000).toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {subscriptionData.plan && (
+                          <div className="flex items-start">
+                            <div className="font-medium text-gray-400 w-40">plan:</div>
+                            <div className="font-semibold text-white">
+                              "{subscriptionData.plan}"
+                            </div>
+                          </div>
+                        )}
+                        
+                        {subscriptionData.startDate && (
+                          <div className="flex items-start">
+                            <div className="font-medium text-gray-400 w-40">startDate:</div>
+                            <div className="font-semibold text-white">
+                              {subscriptionData.startDate instanceof Date 
+                                ? subscriptionData.startDate.toLocaleString()
+                                : new Date(subscriptionData.startDate.seconds * 1000).toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {subscriptionData.status && (
+                          <div className="flex items-start">
+                            <div className="font-medium text-gray-400 w-40">status:</div>
+                            <div className="font-semibold text-white">
+                              "{subscriptionData.status}"
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
+                    
+                    {/* Subscription Progress Bar */}
+                    {subscriptionData.startDate && subscriptionData.endDate && (
+                      <div className="bg-zinc-900 rounded-lg p-4 border border-gray-800">
+                        <h3 className="text-lg font-semibold text-neon-blue mb-3">Subscription Period</h3>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm text-gray-400">
+                            <span>Start: {new Date(
+                              subscriptionData.startDate instanceof Date 
+                                ? subscriptionData.startDate 
+                                : subscriptionData.startDate.seconds * 1000
+                            ).toLocaleDateString()}</span>
+                            <span>End: {new Date(
+                              subscriptionData.endDate instanceof Date 
+                                ? subscriptionData.endDate 
+                                : subscriptionData.endDate.seconds * 1000
+                            ).toLocaleDateString()}</span>
+                          </div>
+                          
+                          <div className="w-full bg-gray-800 rounded-full h-2.5">
+                            {(() => {
+                              const startDate = new Date(
+                                subscriptionData.startDate instanceof Date 
+                                  ? subscriptionData.startDate 
+                                  : subscriptionData.startDate.seconds * 1000
+                              );
+                              const endDate = new Date(
+                                subscriptionData.endDate instanceof Date 
+                                  ? subscriptionData.endDate 
+                                  : subscriptionData.endDate.seconds * 1000
+                              );
+                              const now = new Date();
+                              const total = endDate.getTime() - startDate.getTime();
+                              const elapsed = now.getTime() - startDate.getTime();
+                              const progress = Math.min(100, Math.max(0, Math.floor((elapsed / total) * 100)));
+                              
+                              return (
+                                <div 
+                                  className="bg-neon-blue h-2.5 rounded-full" 
+                                  style={{ width: `${progress}%` }}
+                                ></div>
+                              );
+                            })()}
+                          </div>
+                          
+                          <div className="text-center text-sm text-gray-400 mt-1">
+                            {(() => {
+                              const startDate = new Date(
+                                subscriptionData.startDate instanceof Date 
+                                  ? subscriptionData.startDate 
+                                  : subscriptionData.startDate.seconds * 1000
+                              );
+                              const endDate = new Date(
+                                subscriptionData.endDate instanceof Date 
+                                  ? subscriptionData.endDate 
+                                  : subscriptionData.endDate.seconds * 1000
+                              );
+                              const now = new Date();
+                              const total = endDate.getTime() - startDate.getTime();
+                              const elapsed = now.getTime() - startDate.getTime();
+                              const progress = Math.min(100, Math.max(0, Math.floor((elapsed / total) * 100)));
+                              const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                              
+                              return (
+                                <>
+                                  <span className="font-medium">{progress}% used</span>
+                                  <span className="mx-2">•</span>
+                                  <span>{daysRemaining} days remaining</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-6 flex space-x-4">
+                      <button
+                        type="button"
+                        className="glass-button px-4 py-2 flex items-center gap-2"
+                        onClick={() => {
+                          // Navigate to home page and scroll to pricing section
+                          navigate('/');
+                          // Add a small delay to ensure navigation completes before scrolling
+                          setTimeout(() => {
+                            const pricingSection = document.getElementById('pricing');
+                            if (pricingSection) {
+                              pricingSection.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }, 100);
+                        }}
+                      >
+                        Upgrade Plan
+                      </button>
+                      
+                      {subscriptionData.status === 'active' && (
+                        <button
+                          type="button"
+                          className="glass-button-secondary px-4 py-2 flex items-center gap-2"
+                          onClick={() => {
+                            window.open('https://billing.stripe.com/p/login/test_28o5nA9Ot8Ys9yw288', '_blank');
+                          }}
+                        >
+                          Manage Subscription
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )}
-                
-                <div className="mt-6 flex space-x-4">
-                  <button
-                    type="button"
-                    className="glass-button px-4 py-2 flex items-center gap-2"
-                    onClick={() => {
-                      // Navigate to pricing page
-                      window.location.href = '/pricing';
-                    }}
-                  >
-                    Upgrade Plan
-                  </button>
-                  
-                  {subscriptionData.status === 'active' && (
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">No subscription data available.</p>
                     <button
                       type="button"
-                      className="glass-button-secondary px-4 py-2 flex items-center gap-2"
+                      className="glass-button px-4 py-2 mt-4"
                       onClick={() => {
-                        // Open Stripe customer portal
-                        window.open('https://billing.stripe.com/p/login/test_28o5nA9Ot8Ys9yw288', '_blank');
+                        window.location.href = '/pricing';
                       }}
                     >
-                      Manage Subscription
+                      Get Started
                     </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-400">No subscription data available.</p>
-                <button
-                  type="button"
-                  className="glass-button px-4 py-2 mt-4"
-                  onClick={() => {
-                    window.location.href = '/pricing';
-                  }}
-                >
-                  Get Started
-                </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
         </div>
       </div>
-      {import.meta.env.MODE === 'development' && (
-        <button
-          onClick={testPdfGeneration}
-          className="glass-button px-4 py-2 text-sm"
-          title="Test PDF Generation"
-        >
-          Test PDF
-        </button>
-      )}
+      
+      {/* Add the profile completion modal */}
+      <ProfileCompletionModal 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
     </div>
   );
 }

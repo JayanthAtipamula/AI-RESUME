@@ -9,36 +9,54 @@ interface UpgradeModalProps {
   isMonthly: boolean;
 }
 
-const PAYMENT_LINKS = {
-  cashfree: {
-    monthly: 'https://payments.cashfree.com/forms?code=1m-pro&redirect_url=https://ai-resume.vercel.app/payment/success',
-    annual: 'https://payments.cashfree.com/forms?code=1Y-pro&redirect_url=https://ai-resume.vercel.app/payment/success'
+// Renamed to avoid any cached variables
+const CHECKOUT_URLS = {
+  domestic: {
+    month: 'https://payments.cashfree.com/forms?code=1m-pro&redirect_url=https://ai-resume.vercel.app/payment/success',
+    year: 'https://payments.cashfree.com/forms?code=1Y-pro&redirect_url=https://ai-resume.vercel.app/payment/success'
   },
-  stripe: {
-    monthly: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H?success_url=https://ai-resume.vercel.app/payment/success',
-    annual: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H1?success_url=https://ai-resume.vercel.app/payment/success'
+  international: {
+    month: 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H?success_url=https://ai-resume.vercel.app/payment/success',
+    year: 'https://buy.polar.sh/polar_cl_NWpOb8N8riuA969yTFNgVBrNBGqOSrBmYtyrv04dksK?success_url=https://ai-resume.vercel.app/payment/success'
   }
 };
 
+// Direct URL definitions with the exact URLs from polar.sh and cashfree
+const ANNUAL_STRIPE_URL = 'https://buy.polar.sh/polar_cl_NWpOb8N8riuA969yTFNgVBrNBGqOSrBmYtyrv04dksK';
+const MONTHLY_STRIPE_URL = 'https://buy.polar.sh/polar_cl_G4OPjPIhrURX9BSxFGRYojNOCHW6RThTzzYTD1P7c6H';
+const ANNUAL_CASHFREE_URL = 'https://payments.cashfree.com/forms?code=1Y-pro';
+const MONTHLY_CASHFREE_URL = 'https://payments.cashfree.com/forms?code=1m-pro';
+
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly }) => {
   const user = useAuthStore((state) => state.user);
-  const [paymentMethod, setPaymentMethod] = useState<'cashfree' | 'stripe'>('cashfree');
+  const [paymentType, setPaymentType] = useState<'domestic' | 'international'>('domestic');
 
   if (!isOpen) return null;
 
-  const handlePaymentMethodChange = (method: 'cashfree' | 'stripe') => {
-    setPaymentMethod(method);
+  const handlePaymentTypeSelection = (type: 'domestic' | 'international') => {
+    setPaymentType(type);
   };
 
-  const handleCompletePayment = () => {
+  // Completely new function with different name
+  const processPayment = () => {
     if (!user) {
       toast.error('Please log in to continue');
       return;
     }
 
-    const billingPeriod = isMonthly ? 'monthly' : 'annual';
-    const paymentLink = PAYMENT_LINKS[paymentMethod][billingPeriod];
-    window.location.href = paymentLink;
+    // Use direct URL variables instead of object lookup
+    let checkoutUrl;
+    
+    if (paymentType === 'international') {
+      checkoutUrl = isMonthly ? MONTHLY_STRIPE_URL : ANNUAL_STRIPE_URL;
+    } else {
+      checkoutUrl = isMonthly ? MONTHLY_CASHFREE_URL : ANNUAL_CASHFREE_URL;
+    }
+    
+    console.log('Opening payment page in new tab:', checkoutUrl);
+    
+    // Open in a new tab
+    window.open(checkoutUrl, '_blank');
   };
 
   return (
@@ -58,14 +76,14 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly 
             <label className="flex items-center glass p-3 rounded-lg cursor-pointer hover:bg-white/5">
               <input
                 type="radio"
-                name="paymentMethod"
-                value="cashfree"
-                checked={paymentMethod === 'cashfree'}
-                onChange={() => handlePaymentMethodChange('cashfree')}
+                name="paymentType"
+                value="domestic"
+                checked={paymentType === 'domestic'}
+                onChange={() => handlePaymentTypeSelection('domestic')}
                 className="mr-3 h-5 w-5 accent-neon-blue"
               />
               <div>
-                <span className="text-white font-medium">Continue with Cashfree UPI</span>
+                <span className="text-white font-medium">Cashfree Payment</span>
                 <p className="text-gray-400 text-sm">Pay using UPI, Net Banking, or Cards (India)</p>
               </div>
             </label>
@@ -73,14 +91,14 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly 
             <label className="flex items-center glass p-3 rounded-lg cursor-pointer hover:bg-white/5">
               <input
                 type="radio"
-                name="paymentMethod"
-                value="stripe"
-                checked={paymentMethod === 'stripe'}
-                onChange={() => handlePaymentMethodChange('stripe')}
+                name="paymentType"
+                value="international"
+                checked={paymentType === 'international'}
+                onChange={() => handlePaymentTypeSelection('international')}
                 className="mr-3 h-5 w-5 accent-neon-blue"
               />
               <div>
-                <span className="text-white font-medium">Continue with Stripe</span>
+                <span className="text-white font-medium">Stripe Payment</span>
                 <p className="text-gray-400 text-sm">Pay using Credit/Debit Card (International)</p>
               </div>
             </label>
@@ -89,7 +107,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, isMonthly 
 
         <div className="flex justify-end">
           <button
-            onClick={handleCompletePayment}
+            onClick={processPayment}
             className="glass-button py-2 px-6"
           >
             Complete Payment
