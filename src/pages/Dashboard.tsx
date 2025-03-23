@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, orderBy, limit, Timestamp } from 'firebase/firestore';
-import { db, addNewResume } from '../lib/firebase';
+import { db, addNewResume, deductCredits } from '../lib/firebase';
 import { useAuthStore } from '../lib/store';
 import { generateResume, generateCoverLetter } from '../lib/groq';
 import html2pdf from 'html2pdf.js';
@@ -14,6 +14,12 @@ import toast from '../lib/toast';
 import Diamond from '../components/Diamond';
 import { generateResumePDF, generateRawContentPDF } from '../lib/pdfService';
 import classNames from 'classnames';
+import { extractTextFromResume } from '../lib/ocrService';
+import { testPdfConfig, testPdfExtraction } from '../lib/pdfUtils';
+
+// Type declarations for missing modules
+declare module 'html2pdf.js';
+declare module 'classnames';
 
 interface Resume {
   id: string;
@@ -24,6 +30,37 @@ interface Resume {
   type: 'resume' | 'cover-letter';
   userId: string;
 }
+
+// Add this debugging function at the top of the file
+const debugLog = (message: string, data?: any) => {
+  const prefix = '[Debug]';
+  if (data) {
+    console.log(`${prefix} ${message}`, data);
+  } else {
+    console.log(`${prefix} ${message}`);
+  }
+};
+
+// Add this fallback method to handle PDF text extraction without PDF.js
+const extractTextFallback = async (file: File): Promise<string> => {
+  debugLog('Using OCR fallback for PDF extraction');
+  try {
+    // Create a FormData object to send the file to the server
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // If there's a server endpoint for OCR, use it
+    // Otherwise this is just a placeholder for now
+    return `Failed to extract text from PDF using client-side methods. 
+    
+Please ensure you've uploaded a text-based PDF rather than a scanned image.
+    
+Alternatively, you can copy and paste the text from your resume directly into the job description field and use that instead.`;
+  } catch (error) {
+    debugLog('OCR fallback also failed', error);
+    throw new Error('Could not extract text from the PDF document.');
+  }
+};
 
 export default function Dashboard() {
   const { user, setUserData, updateCredits, userData } = useAuthStore((state) => ({ 
@@ -54,12 +91,15 @@ export default function Dashboard() {
   const [showLoadingModal, setShowLoadingModal] = React.useState(false);
   const [modalContent, setModalContent] = React.useState<string | null>(null);
 
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
 
   const [subscriptionData, setSubscriptionData] = React.useState<any>(null);
 
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  const [useExistingResume, setUseExistingResume] = useState(true);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   const navigationItems = [
     { name: 'Dashboard', href: '/dashboard', current: activeTab === 'resume' },
@@ -69,8 +109,8 @@ export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const getLoadingSteps = (type: 'resume' | 'cover-letter') => {
-    if (type === 'resume') {
+  const getLoadingSteps = (type: 'resume' | 'cover-letter' | 'my-plan') => {
+    if (type === 'resume' || type === 'my-plan') {
       return [
         { id: 'profile', text: 'Analyzing Profile', completed: false },
         { id: 'job', text: 'Analyzing Job Description', completed: false },
@@ -122,6 +162,12 @@ export default function Dashboard() {
     setEditingContent(null);
     setExpandedContent(null);
     setEditedContent('');
+    // Also reset file upload and generation method states
+    setResumeFile(null);
+    // Set useExistingResume based on tab type
+    setUseExistingResume(tab === 'resume'); // true for resume, false for cover letter
+    // Reset loading steps for the new tab
+    setLoadingSteps(getLoadingSteps(tab));
     // Clear URL parameters when switching tabs
     window.history.pushState({}, '', '/dashboard');
   };
@@ -156,7 +202,7 @@ export default function Dashboard() {
     const fetchSubscriptionData = async () => {
       if (user && (activeTab === 'my-plan' || tabParam === 'myplan')) {
         try {
-          // Set loading state
+          // Only set loading when we actually need to fetch
           setIsLoading(true);
           
           // Fetch user document from Firebase
@@ -195,8 +241,10 @@ export default function Dashboard() {
     };
 
     const fetchPreviousContent = async () => {
-      setIsLoading(true);
-      if (user) {
+      if (user && activeTab !== 'my-plan') {
+        // Only set loading when we have content to fetch
+        setIsLoading(true);
+        
         const collectionName = activeTab === 'resume' ? 'resumes' : 'coverLetters';
         const contentRef = collection(db, 'users', user.uid, collectionName);
         const q = query(
@@ -225,7 +273,7 @@ export default function Dashboard() {
     fetchProfile();
     fetchSubscriptionData();
     if (activeTab !== 'my-plan') {
-      fetchPreviousContent();
+    fetchPreviousContent();
     }
   }, [user, activeTab, location.search]);
 
@@ -236,111 +284,256 @@ export default function Dashboard() {
   };
 
   const handleGenerate = async () => {
-    if (!profile || Object.keys(profile).length === 0) {
-      // Show profile completion modal instead of redirecting
-      setShowProfileModal(true);
+    debugLog('Starting resume generation process');
+    
+    if (!user) {
+      debugLog('No user found, aborting');
+      toast.error('Please sign in to generate a resume');
       return;
     }
 
-    if (!jobDescription || !user) return;
-
-    // Check credits before proceeding
+    debugLog('User data', userData);
+    
+    // Check for credits first
     if (!userData || userData.credits < 10) {
-      // Show error toast with custom component that includes the upgrade button
-      toast.error(
-        <div className="flex flex-col space-y-2">
-          <div>
-            {userData?.credits === 0 
-              ? "You have no credits remaining. Please upgrade to continue generating content." 
-              : `You need ${10 - (userData?.credits || 0)} more credits. Please upgrade to continue.`
-            }
-          </div>
-          <button
-            className="glass-button px-3 py-1 text-sm mt-2"
-            onClick={() => {
-              // Navigate to home page
-              navigate('/');
-              // Add a small delay to ensure navigation completes before scrolling
-              setTimeout(() => {
-                const pricingSection = document.getElementById('pricing');
-                if (pricingSection) {
-                  pricingSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }, 100);
-            }}
-          >
-            Upgrade Now
-          </button>
-        </div>
-      );
+      debugLog('Not enough credits', userData?.credits);
+      toast.error('Not enough credits. Please upgrade your plan.');
       return;
     }
     
-    setShowLoadingModal(true);
-    setLoadingSteps(getLoadingSteps(activeTab));
-    resetSteps();
-    setIsGenerating(true);
+    // Check required data based on generation method
+    if (useExistingResume) {
+      debugLog('Using existing resume mode', { filePresent: !!resumeFile });
+      if (!resumeFile) {
+        toast.error('Please upload a resume file');
+        return;
+      }
+    } else {
+      debugLog('Using profile data mode', { profilePresent: !!profile });
+      if (!profile || Object.keys(profile).length === 0) {
+        setShowProfileModal(true);
+        return;
+      }
+    }
+
+    if (!jobDescription) {
+      debugLog('Missing job description');
+      toast.error('Please provide a job description');
+      return;
+    }
 
     try {
-      // Start the loading animation
-      const loadingAnimation = simulateProgress();
-
-      // Generate the content
-      const content = activeTab === 'resume' 
-        ? await generateResume(profile, jobDescription)
-        : await generateCoverLetter(profile, jobDescription);
-
-      // Wait for the loading animation to complete
-      await loadingAnimation;
-
-      // Add a small delay to ensure all checkmarks are visible
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Start generation process
+      setIsGenerating(true);
       
-      // Update the modal with the generated content
-      setModalContent(content);
+      // Reset steps and set the right steps based on the current tab and generation method
+      resetSteps();
+      
+      // Set the proper loading steps based on what we're generating
+      const steps = getLoadingSteps(activeTab);
+      if (useExistingResume) {
+        // Customize steps for resume upload flow
+        steps[0].text = 'Analyzing Uploaded Resume';
+      } else {
+        // Customize steps for job description to resume/cover letter flow
+        steps[0].text = activeTab === 'resume' ? 'Analyzing Job Requirements' : 'Analyzing Job Description';
+      }
+      setLoadingSteps(steps);
+      
+      setShowLoadingModal(true);
+      simulateProgress();
+      debugLog('Started loading animation and progress simulation');
+
+      // Generate content
+      let content;
+      
+      if (useExistingResume && resumeFile) {
+        debugLog('Processing uploaded resume file', resumeFile.name);
+        try {
+          // First test if PDF.js is correctly configured
+          debugLog('Testing PDF.js configuration');
+          const configOk = await testPdfConfig();
+          debugLog('PDF.js configuration test result:', configOk);
+          
+          // Extract text from resume
+          setModalContent('Analyzing your existing resume...');
+          updateStep('profile'); // Mark first step as completed immediately
+          debugLog('Starting text extraction from resume file');
+          
+          let resumeText = '';
+          
+          // Try the direct extraction
+          try {
+            // Test the extraction to get more diagnostic info
+            const extractionTest = await testPdfExtraction(resumeFile);
+            debugLog('PDF extraction test successful', { textSample: extractionTest.substring(0, 100) });
+            
+            resumeText = await extractTextFromResume(resumeFile);
+            debugLog('Text extracted successfully', { textLength: resumeText.length });
+            updateStep('job'); // Mark job analysis step complete after extraction
+          } catch (extractionError) {
+            debugLog('PDF extraction error, trying fallback method', extractionError);
+            
+            try {
+              // Try using the fallback method
+              resumeText = await extractTextFallback(resumeFile);
+              debugLog('Fallback extraction provided text', { textLength: resumeText.length });
+              updateStep('job'); // Mark job analysis step complete after fallback
+            } catch (fallbackError) {
+              debugLog('All extraction methods failed', fallbackError);
+              throw new Error('Could not extract text from the PDF. Please try a different file or use your profile data.');
+            }
+          }
+          
+          // Check if we have meaningful text
+          if (!resumeText || resumeText.trim().length < 50) {
+            debugLog('Extracted text is too short or empty', { text: resumeText });
+            throw new Error('The extracted text from your PDF is too short or empty. Please try a different file or use your profile data.');
+          }
+          
+          // Generate resume from extracted text
+          setModalContent('Generating ATS-friendly content...');
+          updateStep('generate'); // Mark generation step in progress
+          debugLog('Starting resume generation with extracted text');
+          content = await generateResume(
+            { resumeText },
+            jobDescription,
+            true
+          );
+          
+          // Update ATS scores
+          updateStep('score');
+          updateStep('match');
+          
+          // Make sure generated content is saved and displayed properly
+          debugLog('Resume generated successfully from uploaded file', { contentLength: content.length });
+          
+        } catch (error) {
+          debugLog('Error in resume upload processing', error);
+          console.error('Error with resume upload processing:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          toast.error(`Error processing your resume: ${errorMessage}. Please try again or use profile data instead.`);
+          setIsGenerating(false);
+          setShowLoadingModal(false);
+          return;
+        }
+      } else {
+        // Use profile data to generate resume
+        debugLog('Using profile data for generation');
+        setModalContent('Generating ATS-friendly content...');
+        updateStep('profile'); // Mark profile analysis step complete
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Add delay for visual effect
+
+        updateStep('job'); // Mark job analysis step complete
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Add delay for visual effect
+
+        // Start generation with visual indicator
+        setModalContent(`Generating ATS-friendly ${activeTab === 'resume' ? 'resume' : 'cover letter'}...`);
+        updateStep('generate'); // Mark generation step in progress
+        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay before generation
+
+        // Generate the content
+        content = activeTab === 'resume' 
+          ? await generateResume(profile, jobDescription, false)
+          : await generateCoverLetter(profile, jobDescription);
+
+        // Update ATS scores with visual delays
+        await new Promise(resolve => setTimeout(resolve, 800)); // Delay for generation completion
+        updateStep('score');
+
+        await new Promise(resolve => setTimeout(resolve, 800)); // Delay between score and match
+        updateStep('match');
+
+        debugLog('Content generated successfully using profile data');
+      }
+
+      // Set generated content
+      debugLog('Setting generated content', { contentLength: content.length });
       setGeneratedContent(content);
       
+      // Update modal content to show the generated content
+      setModalContent(content);
+      
+      // Save to database
+      const type = activeTab === 'resume' ? 'resume' : 'cover-letter';
+      const collectionName = activeTab === 'resume' ? 'resumes' : 'coverLetters';
       const role = extractRole(jobDescription);
-      const contentData = {
+      
+      debugLog('Saving to database', { type, collectionName, role });
+      await addNewResume(user.uid, {
+        userId: user.uid,
         content,
         jobDescription,
+        createdAt: new Date(),
         role,
-        type: activeTab,
-        createdAt: Timestamp.now(),
-        userId: user.uid
-      };
-
-      // Use the new addNewResume function that handles cleanup and updates frontend state
-      await addNewResume(user.uid, activeTab, contentData, setUserData, updateCredits);
+        type
+      }, collectionName);
+      debugLog('Saved to database successfully');
       
-      // Fetch latest user data to ensure accurate credit display
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setUserData(userData);
-        updateCredits(userData.credits);
+      // Complete all steps to ensure modal shows content view
+      loadingSteps.forEach(step => {
+        if (!step.completed) {
+          updateStep(step.id);
+        }
+      });
+      
+      // Deduct credits
+      debugLog('Deducting credits');
+      const newCredits = await deductCredits(user.uid);
+      debugLog('Credits deducted', { newCredits });
+      updateCredits(newCredits);
+      debugLog('Updated user data with new credits');
+
+      // Fetch updated resume list
+      debugLog('Fetching updated resume list');
+      const contentRef = collection(db, 'users', user.uid, collectionName);
+      const q = query(contentRef, orderBy('createdAt', 'desc'), limit(5));
+      const querySnapshot = await getDocs(q);
+
+      const updatedContent: Resume[] = [];
+      querySnapshot.forEach((doc) => {
+        updatedContent.push({ 
+          id: doc.id,
+          ...doc.data()
+        } as Resume);
+      });
+
+      setPreviousContent(updatedContent);
+      debugLog('Updated previous content list successfully', { count: updatedContent.length });
+      
+    } catch (error) {
+      debugLog('Error in overall generation process', error);
+      console.error('Error generating content:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Error generating content: ${errorMessage}. Please try again.`);
+    } finally {
+      // Update this part to keep modal open but stop the loading animation
+      debugLog('Generation process completed');
+      setIsGenerating(false);
+      
+      // Reset file upload state if generation was successful
+      if (generatedContent) {
+        debugLog('Resetting file upload state');
+        setResumeFile(null);
+        setUseExistingResume(false);
       }
       
-      // Fetch the latest resumes after adding new one
-      const resumesRef = collection(db, 'users', user.uid, activeTab === 'resume' ? 'resumes' : 'coverLetters');
-      const q = query(resumesRef, orderBy('createdAt', 'desc'), limit(5));
-      const querySnapshot = await getDocs(q);
+      // Complete all steps in the loading process
+      loadingSteps.forEach(step => {
+        if (!step.completed) {
+          updateStep(step.id);
+        }
+      });
       
-      const latestContent = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      setPreviousContent(latestContent);
-    } catch (error) {
-      console.error('Error generating content:', error);
+      // Don't automatically close the modal - user will close it
+      // setShowLoadingModal(false);
     }
-    setIsGenerating(false);
   };
 
   const handleCloseModal = () => {
     setShowLoadingModal(false);
     resetSteps();
+    setModalContent(null); // Reset modal content when closing
   };
 
   const handleDelete = async (id: string, type: 'resume' | 'cover-letter') => {
@@ -651,7 +844,7 @@ export default function Dashboard() {
                 onClose();
               }}
             >
-              Set Up Profile
+            Set Up Profile
             </button>
           </div>
         </div>
@@ -663,69 +856,77 @@ export default function Dashboard() {
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8 mt-20">
         <div className="flex flex-col space-y-6">
-          <LoadingModal
-            isOpen={showLoadingModal}
-            type={activeTab === 'my-plan' ? 'resume' : activeTab}
-            steps={loadingSteps}
-            content={modalContent}
-            onClose={handleCloseModal}
-            downloadAsPDF={downloadAsPDF}
-            downloadAsText={downloadAsText}
-            jobDescription={jobDescription}
-            extractRole={extractRole}
-          />
-          
-          <div className="max-w-4xl mx-auto">
+      <LoadingModal
+        isOpen={showLoadingModal}
+        type={activeTab === 'my-plan' ? 'resume' : activeTab}
+        contentType={activeTab === 'resume' ? 'Resume' : 'Cover Letter'}
+        steps={loadingSteps}
+        content={modalContent}
+        onClose={handleCloseModal}
+        downloadAsPDF={downloadAsPDF}
+        downloadAsText={downloadAsText}
+        jobDescription={jobDescription}
+        extractRole={extractRole}
+        loadingSteps={loadingSteps}
+        resetSteps={resetSteps}
+        activeTab={activeTab}
+      />
+      
+      <div className="max-w-4xl mx-auto">
             {/* Only show TabSelector when not on My Plan page */}
             {activeTab !== 'my-plan' && (
-              <div className="flex justify-between items-center mb-6">
-                <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
-              </div>
+            <div className="flex justify-between items-center mb-6">
+        <TabSelector activeTab={activeTab} onTabChange={handleTabChange} />
+            </div>
             )}
 
             {activeTab !== 'my-plan' && (
               <>
-                <GenerateContent
-                  type={activeTab}
-                  jobDescription={jobDescription}
-                  setJobDescription={setJobDescription}
-                  handleGenerate={handleGenerate}
-                  isGenerating={isGenerating}
-                  userData={userData}
-                />
+        <GenerateContent
+          type={activeTab}
+          jobDescription={jobDescription}
+          setJobDescription={setJobDescription}
+          handleGenerate={handleGenerate}
+          isGenerating={isGenerating}
+              userData={userData}
+                  resumeFile={resumeFile}
+                  setResumeFile={setResumeFile}
+                  useExistingResume={useExistingResume}
+                  setUseExistingResume={setUseExistingResume}
+        />
 
-                <ResumeDisplay
-                  content={generatedContent}
-                  jobDescription={jobDescription}
-                  type={activeTab}
-                  downloadAsPDF={downloadAsPDF}
-                  downloadAsText={downloadAsText}
-                  extractRole={extractRole}
-                  formatResumeDisplay={formatResumeDisplay}
-                />
+        <ResumeDisplay
+          content={generatedContent}
+          jobDescription={jobDescription}
+          type={activeTab}
+          downloadAsPDF={downloadAsPDF}
+          downloadAsText={downloadAsText}
+          extractRole={extractRole}
+          formatResumeDisplay={formatResumeDisplay}
+        />
 
-                {isLoading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
-                  </div>
-                ) : previousContent.length > 0 ? (
-                  <PreviousResumes
-                    resumes={previousContent}
-                    editingResume={editingContent}
-                    expandedResume={expandedContent}
-                    editedContent={editedContent}
-                    isDeleting={isDeleting}
-                    onToggleExpand={toggleExpand}
-                    onEdit={handleEdit}
-                    onSave={handleSaveEdit}
-                    onCancel={handleCancelEdit}
-                    onDelete={(id) => handleDelete(id, activeTab)}
-                    onEditContentChange={setEditedContent}
-                    downloadAsPDF={downloadAsPDF}
-                    downloadAsText={downloadAsText}
-                    formatResumeDisplay={formatResumeDisplay}
-                  />
-                ) : null}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-blue"></div>
+          </div>
+        ) : previousContent.length > 0 ? (
+          <PreviousResumes
+            resumes={previousContent}
+            editingResume={editingContent}
+            expandedResume={expandedContent}
+            editedContent={editedContent}
+            isDeleting={isDeleting}
+            onToggleExpand={toggleExpand}
+            onEdit={handleEdit}
+            onSave={handleSaveEdit}
+            onCancel={handleCancelEdit}
+            onDelete={(id) => handleDelete(id, activeTab)}
+            onEditContentChange={setEditedContent}
+            downloadAsPDF={downloadAsPDF}
+            downloadAsText={downloadAsText}
+            formatResumeDisplay={formatResumeDisplay}
+          />
+        ) : null}
               </>
             )}
 
@@ -920,7 +1121,7 @@ export default function Dashboard() {
                 )}
               </div>
             )}
-          </div>
+      </div>
         </div>
       </div>
       

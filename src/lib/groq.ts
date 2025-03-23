@@ -5,76 +5,154 @@ const groq = new Groq({
   dangerouslyAllowBrowser: true
 });
 
-export const generateResume = async (profile: any, jobDescription: string) => {
-  const prompt = `
-    Create  a professional, ATS-friendly resume based on the profile and job description below.
-    
-    Format the resume exactly like this example, maintaining the same structure and style:
+export const generateResume = async (
+  profileData: any, 
+  jobDescription: string,
+  useExistingResume: boolean = false
+) => {
+  let prompt;
+  
+  if (useExistingResume && profileData.resumeText) {
+    // If using existing resume, create a prompt that uses the extracted text
+    prompt = `
+      Create a professional, ATS-friendly resume based on the existing resume text and job description below.
+      
+      Format the resume exactly like this example, maintaining the same structure and style:
 
-    [Full Name]
-    [Location]  [Phone]  [Email]
+      [Full Name]
+      [Location]  [Phone]  [Email]
 
-    SUMMARY
-    [2-3 sentences highlighting key qualifications matching the job requirements]
+      SUMMARY
+      [2-3 sentences highlighting key qualifications matching the job requirements]
 
-    EXPERIENCE
-    [Company Name], [Location]
-    [Job Title], [Duration]
-    - [Achievement/responsibility with metrics]
-    - [Achievement/responsibility with metrics]
-    - [Achievement/responsibility with metrics]
+      EXPERIENCE
+      [Company Name], [Location]
+      [Job Title], [Duration]
+      - [Achievement/responsibility with metrics]
+      - [Achievement/responsibility with metrics]
+      - [Achievement/responsibility with metrics]
 
-    PROJECTS
-    [Project Name]
-    - [Project description with impact and technologies used]
-    - [Link if available]
+      PROJECTS
+      [Project Name]
+      - [Project description with impact and technologies used]
+      - [Link if available]
 
-    EDUCATION
-    [Institution Name]
-    [Degree], [Year], CGPA: [CGPA]
+      EDUCATION
+      [Institution Name]
+      [Degree], [Year], CGPA: [CGPA]
 
-    SKILLS
-    [Skill Category 1]: [List relevant skills in this category]
-    [Skill Category 2]: [List relevant skills in this category]
-    [Skill Category 3]: [List relevant skills in this category]
+      SKILLS
+      [Skill Category 1]: [List relevant skills in this category]
+      [Skill Category 2]: [List relevant skills in this category]
+      [Skill Category 3]: [List relevant skills in this category]
 
-    CERTIFICATIONS
-    [Certification Name], [Issuing Organization], [Year]
+      CERTIFICATIONS
+      [Certification Name], [Issuing Organization], [Year]
 
-    LANGUAGES
-    [List languages with proficiency levels]
+      LANGUAGES
+      [List languages with proficiency levels]
 
-    HOBBIES & INTERESTS
-    [List relevant hobbies and interests]
+      HOBBIES & INTERESTS
+      [List relevant hobbies and interests]
 
-    Use the following profile information:
-    ${JSON.stringify(profile, null, 2)}
-    
-    Target this job description:
-    ${jobDescription}
+      Here is the text extracted from the existing resume:
+      ${profileData.resumeText}
+      
+      Target this job description:
+      ${jobDescription}
 
-    IMPORTANT:
-    1. Focus on achievements and metrics
-    2. Use strong action verbs
-    3. Match keywords from the job description
-    4. Keep formatting clean and consistent
-    5. Prioritize relevant experience and projects
-    6. Include only the most relevant skills
-    7. Use bullet points for experience and projects
-    8. Keep sections clearly separated with headers
-    9. Maintain professional formatting
-    10. Ensure all dates and contact info are properly formatted
-    11. For education entries, place CGPA on the same line as degree and year
-    12. Include languages section with proficiency levels if available in profile
-    13. Include a brief hobbies section if it adds value to the application
-    14. Maintain the skill categories exactly as provided in the profile
-    15. For each skill category, list the most relevant skills for the job
-    16 .Use More Measurable Achievements
-        Include quantifiable metrics (e.g., "Reduced cloud costs by 20%" instead of "Optimized cloud costs").
-        Highlight performance improvements with specific percentages, time reductions, or cost savings.
-    17 .Extract relevant keywords from job descriptions and ensure they appear naturally in the resume.
-    18 .dont give any other text or comments in the resume.that you are generating a resume.and done so and so.
-  `;
+      IMPORTANT:
+      1. Use the information from the existing resume but reformat and optimize it for the job description
+      2. Focus on achievements and metrics mentioned in the existing resume
+      3. Use strong action verbs
+      4. Match keywords from the job description
+      5. Keep formatting clean and consistent
+      6. Prioritize relevant experience and projects
+      7. Include only the most relevant skills
+      8. Use bullet points for experience and projects
+      9. Keep sections clearly separated with headers
+      10. Maintain professional formatting
+      11. Ensure all dates and contact info are properly formatted
+      12. Include languages section with proficiency levels if available
+      13. Include a brief hobbies section if it adds value to the application
+      14. Extract and organize skills into appropriate categories
+      15. For each skill category, list the most relevant skills for the job
+      16. Use measurable achievements with specific metrics when possible
+      17. Don't give any other text or comments in the resume
+    `;
+  } else {
+    // Otherwise, use the original profile-based prompt
+    prompt = `
+      Create  a professional, ATS-friendly resume based on the profile and job description below.
+      
+      Format the resume exactly like this example, maintaining the same structure and style:
+
+      [Full Name]
+      [Location]  [Phone]  [Email]
+
+      SUMMARY
+      [2-3 sentences highlighting key qualifications matching the job requirements]
+
+      EXPERIENCE
+      [Company Name], [Location]
+      [Job Title], [Duration]
+      - [Achievement/responsibility with metrics]
+      - [Achievement/responsibility with metrics]
+      - [Achievement/responsibility with metrics]
+
+      PROJECTS
+      [Project Name]
+      - [Project description with impact and technologies used]
+      - [Link if available]
+
+      EDUCATION
+      [Institution Name]
+      [Degree], [Year], CGPA: [CGPA]
+
+      SKILLS
+      [Skill Category 1]: [List relevant skills in this category]
+      [Skill Category 2]: [List relevant skills in this category]
+      [Skill Category 3]: [List relevant skills in this category]
+
+      CERTIFICATIONS
+      [Certification Name], [Issuing Organization], [Year]
+
+      LANGUAGES
+      [List languages with proficiency levels]
+
+      HOBBIES & INTERESTS
+      [List relevant hobbies and interests]
+
+      Use the following profile information:
+      ${JSON.stringify(profileData, null, 2)}
+      
+      Target this job description:
+      ${jobDescription}
+
+      IMPORTANT:
+      1. Focus on achievements and metrics
+      2. Use strong action verbs
+      3. Match keywords from the job description
+      4. Keep formatting clean and consistent
+      5. Prioritize relevant experience and projects
+      6. Include only the most relevant skills
+      7. Use bullet points for experience and projects
+      8. Keep sections clearly separated with headers
+      9. Maintain professional formatting
+      10. Ensure all dates and contact info are properly formatted
+      11. For education entries, place CGPA on the same line as degree and year
+      12. Include languages section with proficiency levels if available in profile
+      13. Include a brief hobbies section if it adds value to the application
+      14. Maintain the skill categories exactly as provided in the profile
+      15. For each skill category, list the most relevant skills for the job
+      16 .Use More Measurable Achievements
+          Include quantifiable metrics (e.g., "Reduced cloud costs by 20%" instead of "Optimized cloud costs").
+          Highlight performance improvements with specific percentages, time reductions, or cost savings.
+      17 .Extract relevant keywords from job descriptions and ensure they appear naturally in the resume.
+      18 .dont give any other text or comments in the resume.that you are generating a resume.and done so and so.
+    `;
+  }
+
   const chatCompletion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],
     model: "llama-3.3-70b-versatile",

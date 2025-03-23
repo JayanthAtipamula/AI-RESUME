@@ -20,7 +20,7 @@ import { UserData } from './types';
 function AppContent() {
   const setUser = useAuthStore((state) => state.setUser);
   const setUserData = useAuthStore((state) => state.setUserData);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -54,28 +54,20 @@ function AppContent() {
     }
   }, [searchParams]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-blue"></div>
-      </div>
-    );
-  }
-
   return (
     <>
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/resume/:id" element={<SharedResume />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
-        <Route path="/r/:resumeId" element={<SharedResume />} />
-        <Route element={<PrivateRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/referrals" element={<Referrals />} />
-        </Route>
+        
+        {/* Protected routes */}
+        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/referrals" element={<PrivateRoute><Referrals /></PrivateRoute>} />
       </Routes>
     </>
   );

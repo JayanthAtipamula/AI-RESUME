@@ -1,9 +1,14 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../lib/store';
+import React from 'react';
 
-export default function PrivateRoute() {
+interface PrivateRouteProps {
+  children: React.ReactElement;
+}
+
+export default function PrivateRoute({ children }: PrivateRouteProps) {
   const user = useAuthStore((state) => state.user);
   const location = useLocation();
 
-  return user ? <Outlet /> : <Navigate to="/login" state={{ from: location }} />;
+  return user ? children : <Navigate to="/login" state={{ from: location }} />;
 }

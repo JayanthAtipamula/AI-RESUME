@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, collection, query, orderBy, getDocs, deleteDoc, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, where, increment, arrayUnion } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, getDocs, deleteDoc, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, where, increment, arrayUnion, Timestamp } from 'firebase/firestore';
 import { nanoid } from 'nanoid';
 
 const firebaseConfig = {
@@ -142,43 +142,29 @@ export async function cleanupOldResumes(userId: string, type: 'resume' | 'cover-
   }
 }
 
-export async function addNewResume(
-  userId: string, 
-  type: 'resume' | 'cover-letter',
-  data: any,
-  setUserData: (updater: any) => void,
-  updateCredits?: (credits: number) => void
-) {
+/**
+ * Add a new resume/cover letter to the user's collection
+ * @param userId - User ID
+ * @param resumeData - Resume data object
+ * @param collectionName - Collection name (resumes or coverLetters)
+ * @returns Promise<void>
+ */
+export const addNewResume = async (
+  userId: string,
+  resumeData: any,
+  collectionName: string
+): Promise<void> => {
   try {
-    // Deduct credits first using transaction
-    const newCredits = await deductCredits(userId, 10);
-    
-    // Update frontend state immediately using both methods for compatibility
-    if (updateCredits) {
-      updateCredits(newCredits);
-    }
-    setUserData((prevData: any) => ({
-      ...(prevData || {}),
-      credits: newCredits,
-      uid: userId
-    }));
-    
-    // Add the resume
-    const collectionRef = collection(db, 'users', userId, type === 'resume' ? 'resumes' : 'coverLetters');
-    const docRef = await addDoc(collectionRef, {
-      ...data,
-      createdAt: serverTimestamp()
+    const newDocRef = doc(collection(db, 'users', userId, collectionName));
+    await setDoc(newDocRef, {
+      ...resumeData,
+      createdAt: Timestamp.fromDate(new Date())
     });
-    
-    // Cleanup old resumes
-    await cleanupOldResumes(userId, type);
-    
-    return { docRef, credits: newCredits };
   } catch (error) {
-    console.error('Error adding new resume:', error);
+    console.error('Error adding resume:', error);
     throw error;
   }
-}
+};
 
 export async function getUserCredits(userId: string) {
   try {

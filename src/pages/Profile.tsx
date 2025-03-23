@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../lib/store';
 import { Save, Plus, Trash2, Wand2, ArrowLeft } from 'lucide-react';
+import toast from '../lib/toast';
 
 interface WorkExperience {
   company: string;
@@ -128,8 +129,14 @@ function Profile() {
 
   const handleSave = async () => {
     if (user) {
-      await setDoc(doc(db, 'profiles', user.uid), profile);
-      navigate('/dashboard');
+      try {
+        await setDoc(doc(db, 'profiles', user.uid), profile);
+        toast.success('Profile saved successfully!');
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        toast.error('Error saving profile. Please try again.');
+      }
     }
   };
 

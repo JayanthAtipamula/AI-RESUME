@@ -67,3 +67,17 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-neon-blue/20 rounded-full hover:bg-neon-blue/40 transition-colors duration-200;
 }
+
+/* Toggle Switch Styling */
+.toggle-checkbox:checked {
+  transform: translateX(0.75rem);
+  border-color: rgba(0, 242, 254, 0.8);
+}
+
+.toggle-checkbox:checked + .toggle-label {
+  background-color: rgba(0, 242, 254, 0.3);
+}
+
+.toggle-label {
+  transition: background-color 0.2s ease;
+}

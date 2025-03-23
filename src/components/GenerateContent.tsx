@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles, Diamond } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Diamond, Upload } from 'lucide-react';
 import GenerateButton from './GenerateButton';
 
 interface GenerateContentProps {
@@ -9,6 +9,10 @@ interface GenerateContentProps {
   handleGenerate: () => void;
   isGenerating: boolean;
   userData: any;
+  resumeFile?: File | null;
+  setResumeFile?: (file: File | null) => void;
+  useExistingResume?: boolean;
+  setUseExistingResume?: (value: boolean) => void;
 }
 
 export default function GenerateContent({
@@ -17,8 +21,29 @@ export default function GenerateContent({
   setJobDescription,
   handleGenerate,
   isGenerating,
-  userData
+  userData,
+  resumeFile,
+  setResumeFile,
+  useExistingResume = false,
+  setUseExistingResume
 }: GenerateContentProps) {
+  // Only show the toggle for resume tab, not cover letter
+  const showResumeUpload = type === 'resume' && setUseExistingResume && setResumeFile;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && setResumeFile) {
+      const file = e.target.files[0];
+      // Check if file is PDF or DOCX
+      if (file.type === 'application/pdf' || 
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        setResumeFile(file);
+      } else {
+        alert('Please upload a PDF or DOCX file');
+        e.target.value = '';
+      }
+    }
+  };
+
   return (
     <div className="glass p-3 sm:p-6 mb-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -37,6 +62,61 @@ export default function GenerateContent({
           </div>
         </div>
       </div>
+
+      {showResumeUpload && (
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="relative inline-block w-10 mr-2 align-middle select-none">
+              <input 
+                type="checkbox" 
+                id="toggle" 
+                checked={useExistingResume}
+                onChange={() => setUseExistingResume?.(!useExistingResume)}
+                className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out"
+              />
+              <label 
+                htmlFor="toggle" 
+                className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+              />
+            </div>
+            <label htmlFor="toggle" className="text-sm font-medium text-gray-300 cursor-pointer">
+              Generate from Existing Resume
+            </label>
+          </div>
+          
+          {useExistingResume && (
+            <div className="glass p-4 border border-dashed border-neon-blue/30 rounded-lg mb-4">
+              <div className="flex flex-col items-center justify-center">
+                <Upload className="w-8 h-8 text-neon-blue mb-2" />
+                <p className="text-gray-300 text-sm mb-3">Upload your existing resume (PDF or DOCX)</p>
+                
+                <input
+                  type="file"
+                  id="resume-file"
+                  accept=".pdf,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                
+                <div className="flex items-center gap-3">
+                  <label 
+                    htmlFor="resume-file" 
+                    className="glass-button px-4 py-2 cursor-pointer text-sm"
+                  >
+                    Browse Files
+                  </label>
+                  
+                  {resumeFile && (
+                    <span className="text-sm text-gray-300 truncate max-w-[200px]">
+                      {resumeFile.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>
